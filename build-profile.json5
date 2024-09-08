@@ -5,13 +5,26 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\Administrator\\.ohos\\config\\default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.cer",
-          "storePassword": "0000001AEE8EF54D9C12BEFC8DA4DB567CCA1916EB158AE5795BE8D26D1B47F5639A3211FA303BE6F234",
+          "certpath": "C:/Users/Administrator/.ohos/config/default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.cer",
+          "storePassword": "0000001AD373796DB07D2C3D54A73670F118F2A1B0DF08C5ED832049AC75DA59E46C6A7EC4502B595524",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001A28A1B1324EEA2185703C34372D4D48DB15C145A946A17B6AAEBC56E5EDBDC5129E9024E6BE37",
-          "profile": "C:\\Users\\Administrator\\.ohos\\config\\default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.p7b",
+          "keyPassword": "0000001AB55BAD6790EB8ABBB0663FB7894CBC2DE05113ECEA0D7B747FE17CA927A253ED7D0B00ADC196",
+          "profile": "C:/Users/Administrator/.ohos/config/default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\Administrator\\.ohos\\config\\default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.p12"
+          "storeFile": "C:/Users/Administrator/.ohos/config/default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.p12"
+        }
+      },
+      {
+        "name": "prod",
+        "type": "HarmonyOS",
+        "material": {
+          "storePassword": "000000189A09B6339C48D50E9361DA0F9871DF882A353B1D92AC8306C8E95F0B0AB8E7A12DE2BCCE",
+          "certpath": "G:/huawei/store/moonlight-prod.cer",
+          "keyAlias": "Moonlight",
+          "keyPassword": "0000001821EC4715736A269150AB0120F9B437ED8C9F03A5FF3DA81AA82C83531363B25CB99C49A6",
+          "profile": "G:/huawei/store/clash testRelease.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "G:/huawei/store/keystore.p12"
         }
       }
     ],
@@ -19,6 +32,12 @@
       {
         "name": "default",
         "signingConfig": "default",
+        "compatibleSdkVersion": "5.0.0(12)",
+        "runtimeOS": "HarmonyOS",
+      },
+      {
+        "name": "prod",
+        "signingConfig": "prod",
         "compatibleSdkVersion": "5.0.0(12)",
         "runtimeOS": "HarmonyOS",
       }
@@ -40,7 +59,8 @@
         {
           "name": "default",
           "applyToProducts": [
-            "default"
+            "default",
+            "prod"
           ]
         }
       ]

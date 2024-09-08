@@ -1,5 +1,11 @@
-
-$OHOS_NATIVE_HOME="G:/huawei/SDK/HarmonyOS-NEXT-DB1/openharmony/native"
+$arch="arm64"
+# amd64  arm64
+$target="aarch64"
+# x86_64 aarch64
+$outdir="arm64-v8a"
+# x86_64 arm64-v8a
+#$OHOS_NATIVE_HOME="G:/huawei/SDK/HarmonyOS-NEXT-DB1/openharmony/native"
+$OHOS_NATIVE_HOME="G:/huawei/DevEcoStudio/sdk/HarmonyOS-NEXT-DB3/openharmony/native"
 $BASE_FLAGS="-Wno-error --sysroot=$OHOS_NATIVE_HOME/sysroot -fdata-sections -D__MUSL__ -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fno-addrsig -Wa,--noexecstack -fPIC"
 $TOOLCHAIN="$OHOS_NATIVE_HOME/llvm"
 
@@ -11,12 +17,12 @@ $CGO_AR= "$TOOLCHAIN/bin/llvm-ar"
 $env:GOASM= "$TOOLCHAIN/bin/llvm-as"
 
 $env:GOOS = "android"
-$env:GOARCH = "arm64" # amd64 386 arm arm64
+$env:GOARCH = $arch # amd64 386 arm arm64
 $env:GOARM = "";
 $env:CGO_ENABLED = "1"
 $env:CGO_CXXFLAGS=""
-$env:CGO_CFLAGS = "-Wno-error --target=aarch64-linux-ohos  $BASE_FLAGS  "
-$env:CGO_LDFLAGS = "-extld=$env:LD --sysroot=$OHOS_NATIVE_HOME/sysroot --target=aarch64-linux-ohos"
+$env:CGO_CFLAGS = "-Wno-error --target=$target-linux-ohos  $BASE_FLAGS  "
+$env:CGO_LDFLAGS = "-extld=$env:LD --sysroot=$OHOS_NATIVE_HOME/sysroot --target=$target-linux-ohos"
 
 $sourceFile = "./native"
 $outputFile = "myapp.so"
@@ -30,5 +36,5 @@ if (Test-Path $outputFile) {
 } else {
     Write-Host "failed"
 }
-Copy-Item -Force "$PSScriptRoot\myapp.so" "$PSScriptRoot\..\..\..\libs\arm64-v8a\myapp.so"
+Copy-Item -Force "$PSScriptRoot\myapp.so" "$PSScriptRoot\..\..\..\libs\$outdir\myapp.so"
 #Copy-Item -Force "$PSScriptRoot\dist\index.d.ts" "$PSScriptRoot\..\src\main\cpp\types\hello\index.d.ts"

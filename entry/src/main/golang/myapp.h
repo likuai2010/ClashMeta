@@ -123,6 +123,7 @@ extern void writeOverride(int slot, c_string content);
 extern void clearOverride(int slot);
 extern void subscribeLogcat(void* remote);
 extern void coreInit(c_string home, c_string versionName, int sdkVersion);
+extern int coreTest();
 extern void reset();
 extern void forceGc();
 extern char* startHttp(c_string listenAt);

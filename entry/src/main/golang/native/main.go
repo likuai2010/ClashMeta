@@ -31,6 +31,11 @@ func coreInit(home, versionName C.c_string, sdkVersion C.int) {
 	reset()
 }
 
+//export coreTest
+func coreTest() C.int {
+	return 1
+}
+
 //export reset
 func reset() {
 	config.LoadDefault()

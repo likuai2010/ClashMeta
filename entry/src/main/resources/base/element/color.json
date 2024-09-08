@@ -3,6 +3,22 @@
     {
       "name": "start_window_background",
       "value": "#FFFFFF"
+    },
+    {
+      "name": "color_clash",
+      "value": "#1e4376"
+    },
+    {
+      "name": "color_clash_stopped",
+      "value": "#FF808080"
+    },
+    {
+      "name": "color_control_disabled",
+      "value": "#FFD3D3D3"
+    },
+    {
+      "name": "color_error",
+      "value": "#FFB00020"
     }
   ]
 }

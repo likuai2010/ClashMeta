@@ -45,7 +45,6 @@ func Start(fd int, gateway, portal, dns string) (io.Closer, error) {
         log.Debugln("TCP = %s", "start")
 		for stack.TCP().SetDeadline(time.Time{}) == nil {
 			conn, err := stack.TCP().Accept()
-            log.Debugln("Accept TCP = %s", "conn")
 			if err != nil {
 				log.Debugln("Accept TCP connection: %v", err)
 				continue
@@ -116,7 +115,6 @@ func Start(fd int, gateway, portal, dns string) (io.Closer, error) {
 			raw := buf[:n]
 			lAddr := lRAddr.(*net.UDPAddr)
 			rAddr := rRAddr.(*net.UDPAddr)
-            log.Debugln("Accept udp lAddr = %s => %s ", lAddr, rAddr)
 			if ipv4LoopBack.Contains(rAddr.IP) {
 				pool.Put(buf)
 
@@ -149,7 +147,6 @@ func Start(fd int, gateway, portal, dns string) (io.Closer, error) {
 					pool.Put(buf)
 				},
 			}
-            log.Debugln("Accept HandleUDPPacket ")
 			tunnel.Tunnel.HandleUDPPacket(inbound.NewPacket(socks5.ParseAddrToSocksAddr(rAddr), pkt, C.SOCKS5))
 		}
 	}

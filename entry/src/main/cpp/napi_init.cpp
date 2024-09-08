@@ -1,8 +1,10 @@
 #include "napi/native_api.h"
+#include <map>
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
 #include "myapp.h"
+#include "hilog/log.h"
 
 typedef void (*notifyDnsChanged_t)(c_string dnsList);
 typedef void (*notifyInstalledAppsChanged_t)(c_string uids);
@@ -15,6 +17,7 @@ typedef void (*writeOverride_t)(int slot, c_string content);
 typedef void (*clearOverride_t)(int slot);
 typedef void (*subscribeLogcat_t)(void* remote);
 typedef void (*coreInit_t)(c_string home, c_string versionName, int sdkVersion);
+typedef int (*coreTest_t)();
 typedef void (*reset_t)();
 typedef void (*forceGc_t)();
 typedef char* (*startHttp_t)(c_string listenAt);
@@ -34,8 +37,6 @@ typedef void (*updateProvider_t)(void* completable, c_string pType, c_string nam
 typedef void (*suspend_t)(int suspended);
 typedef char* (*installSideloadGeoip_t)(void* block, int blockSize);
 
-typedef void (*mark_socket_func2)(void *tun_interface, int fd);
-
 
 // 声明函数指针变量
 notifyDnsChanged_t notifyDnsChanged;
@@ -49,6 +50,7 @@ writeOverride_t writeOverride;
 clearOverride_t clearOverride;
 subscribeLogcat_t subscribeLogcat;
 coreInit_t coreInit;
+coreTest_t coreTest;
 reset_t reset;
 forceGc_t forceGc;
 startHttp_t startHttp;
@@ -67,99 +69,550 @@ queryProviders_t queryProviders;
 updateProvider_t updateProvider;
 suspend_t suspend;
 installSideloadGeoip_t installSideloadGeoip;
-
-mark_socket_func2 mark_socket_func;
+#include <thread>
 
 #define LOAD_FUNCTION(handle, func) \
     func = (typeof(func))dlsym(handle, #func); \
     if (!func) { \
-        fprintf(stderr, "Failed to load function: %s\n", #func); \
+        OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "Failed to load function: %{public}s \n", #func); \
         return nullptr; \
     }
 
+char* get_string_from_js(napi_env env, napi_value js_str) {
+    // 获取字符串长度
+    size_t str_len;
+    napi_get_value_string_utf8(env, js_str, NULL, 0, &str_len);
 
+    // 为字符串分配内存
+    char* buffer = (char*)malloc((str_len + 1) * sizeof(char));
+    if (buffer == NULL) {
+        napi_throw_error(env, NULL, "Failed to allocate memory for string");
+        return NULL;
+    }
 
-#include <thread>
-napi_threadsafe_function tsfn;
-struct MyData {
-    int fd;
-    void *tun_interface;
+    // 获取字符串内容
+    napi_get_value_string_utf8(env, js_str, buffer, str_len + 1, &str_len);
+
+    return buffer;
+}
+
+struct TsfnPool {
+    std::map<std::string, napi_threadsafe_function> tsfnMap; // 存储多个线程安全函数
 };
-static MyData socket;
-void mark_socket(void *tun_interface, int fd){
-  
-    socket.fd=fd;
-    socket.tun_interface=tun_interface;
-    napi_call_threadsafe_function(tsfn, &socket, napi_tsfn_blocking);
-}
-void complete(void *obj, char *error){
-    
-}
-void printFunc(int fd) {
-     int dd = startTun(fd,"172.19.0.1/30", "172.19.0.2", "0.0.0.0", (void*)mark_socket);
-}
+static TsfnPool tsfnPool;
 
+struct CallbackData {
+    int fd;
+    char* type;
+    char* content;
+};
+static CallbackData callbackData;
 
-static void Napi_OnVideoStatus(napi_env env, napi_value js_callback, void *context, void *data) {
-    MyData* sock = (MyData *)data;
-    if (sock == nullptr)
-        return ;
-    napi_value params[1];
-    napi_value result;
-    napi_create_int32(env, sock->fd, &result);
-    params[0] = result;
-    napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
-}
-
-static napi_value Add(napi_env env, napi_callback_info info)
+static napi_value nativeFetchAndValid(napi_env env, napi_callback_info info)
 {
- 
+    size_t argc = 4;
+    napi_value args[4] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* path = get_string_from_js(env, args[0]);
+    char* url = get_string_from_js(env, args[1]);
+    
+    napi_value resourceName;
+    napi_create_string_latin1(env, "nativeFetchAndValid'", NAPI_AUTO_LENGTH, &resourceName);
+    napi_threadsafe_function tsfn;
+    napi_create_threadsafe_function(env, args[3], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+       CallbackData* cd = (CallbackData *)data;
+        if (cd == nullptr)
+            return ;
+        napi_value params[2];
+        napi_create_string_utf8(env, cd->type, NAPI_AUTO_LENGTH, &params[0]);
+        if(cd->content != NULL){
+            napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[1]);
+        } else {
+            napi_get_undefined(env, &params[1]);
+        }
+        napi_call_function(env, nullptr, js_callback, 2, params, nullptr);
+        }, &tsfn);
+    tsfnPool.tsfnMap["nativeFetchAndValid"] = tsfn;
+   
+    
+    //"https://yc.wenjiushuobuzhidao.top/44879/c?auth=69e2ba977809632e322264183e41547d&v=t"
+    // storage/Users/currentUser/Download/pending
+    OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s %{public}s" ,path, url);
+    std::thread t([](char *path, char * url, bool  force){
+        fetchAndValid((void *)+[](char *completable, char *exception) {
+                OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s" , completable);
+                OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s" , exception);
+                callbackData.type = completable;
+                callbackData.content = exception;
+                auto it = tsfnPool.tsfnMap.find("nativeFetchAndValid");
+                if (it != tsfnPool.tsfnMap.end()){
+                    napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+                }
+        }, path, url, force);
+    }, path, url, true);
+    t.join();
+    return NULL;
+}
+
+
+static napi_value nativeLoad(napi_env env, napi_callback_info info)
+{
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* path = get_string_from_js(env, args[0]);
+    
+    napi_value resourceName;
+    napi_create_string_latin1(env, "nativeLoad'", NAPI_AUTO_LENGTH, &resourceName);
+    napi_threadsafe_function tsfn;
+    napi_create_threadsafe_function(env, args[1], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+       CallbackData* cd = (CallbackData *)data;
+        if (cd == nullptr)
+            return ;
+        napi_value params[1];
+        if(cd->content != NULL){
+            napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[0]);
+        }else{
+           napi_get_undefined(env, &params[0]);
+        }
+        napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
+        }, &tsfn);
+    tsfnPool.tsfnMap["nativeLoad"] = tsfn;
+    load((void*)+[](char* completable, char* exception){
+        callbackData.content = exception;
+        auto it = tsfnPool.tsfnMap.find("nativeLoad");
+        if (it != tsfnPool.tsfnMap.end()){
+            napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+        }
+    }, path);
+    return NULL;
+}
+static napi_value nativeHealthCheck(napi_env env, napi_callback_info info)
+{
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* name = get_string_from_js(env, args[0]);
+    napi_value resourceName;
+    napi_create_string_latin1(env, "nativeHealthCheck'", NAPI_AUTO_LENGTH, &resourceName);
+    napi_threadsafe_function tsfn;
+    napi_create_threadsafe_function(env, args[1], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+       CallbackData* cd = (CallbackData *)data;
+        if (cd == nullptr)
+            return ;
+        napi_value params[1];
+        if(cd->content != NULL){
+            napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[0]);
+        }else{
+           napi_get_undefined(env, &params[0]);
+        }
+        napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
+        }, &tsfn);
+    tsfnPool.tsfnMap["nativeHealthCheck"] = tsfn;
+    
+    healthCheck((void *)+[](char* completable, char* exception){ 
+        callbackData.content = exception;
+        auto it = tsfnPool.tsfnMap.find("nativeHealthCheck");
+        if (it != tsfnPool.tsfnMap.end()){
+            napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+        }
+    }, name);
+    free(name);
+    return NULL;
+}
+static napi_value nativeSubscribeLogcat(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    napi_value resourceName;
+    napi_create_string_latin1(env, "nativeSubscribeLogcat'", NAPI_AUTO_LENGTH, &resourceName);
+    napi_threadsafe_function tsfn;
+    napi_create_threadsafe_function(env, args[0], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+       CallbackData* cd = (CallbackData *)data;
+        if (cd == nullptr)
+            return ;
+        napi_value params[1];
+        if(cd->content != NULL){
+            napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[0]);
+        } else {
+           napi_get_undefined(env, &params[0]);
+        }
+        napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
+        }, &tsfn);
+    tsfnPool.tsfnMap["nativeSubscribeLogcat"] = tsfn;
+    
+    subscribeLogcat((void *)+[](void *logcat_interface, char *payload){ 
+        callbackData.content = payload;
+        auto it = tsfnPool.tsfnMap.find("nativeSubscribeLogcat");
+        if (it != tsfnPool.tsfnMap.end()){
+            napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+        }
+    });
+    return NULL;
+}
+static napi_value nativeUpdateProvider(napi_env env, napi_callback_info info)
+{
     size_t argc = 3;
     napi_value args[3] = {nullptr};
-
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* type = get_string_from_js(env, args[0]);
+    char* name = get_string_from_js(env, args[1]);
+    updateProvider((void *)+[](){
+        
+    },type, name );
+    free(type);
+    free(name);
+    return NULL;
+}
+static napi_value nativeStartTun(napi_env env, napi_callback_info info)
+{
+    size_t argc = 3;
+    napi_value args[3] = {nullptr};
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     
+    int tunFd;
+    napi_get_value_int32(env, args[0], &tunFd);
     
-    napi_valuetype valuetype0;
-    napi_typeof(env, args[0], &valuetype0);
-
-    napi_valuetype valuetype1;
-    napi_typeof(env, args[1], &valuetype1);
     napi_value resourceName;
-    napi_create_string_latin1(env, "onCallback'", NAPI_AUTO_LENGTH, &resourceName);
-    napi_create_threadsafe_function(env, args[2], NULL, resourceName, 0, 1, NULL, NULL, NULL, Napi_OnVideoStatus, &tsfn);
-
-    double value0;
-    napi_get_value_double(env, args[0], &value0);
-    load((void *)&complete, "/storage/Users/currentUser/Download/config");
-    std::thread t(printFunc, value0);
+    napi_create_string_latin1(env, "nativeStartTun'", NAPI_AUTO_LENGTH, &resourceName);
+    napi_threadsafe_function tsfn;
+    napi_create_threadsafe_function(env, args[1], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+        CallbackData* cd = (CallbackData *)data;
+        if (cd == nullptr)
+            return ;
+        napi_value params[1];
+        napi_value result;
+        napi_create_int32(env, cd->fd, &result);
+        params[0] = result;
+        napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
+        }, &tsfn);
+    tsfnPool.tsfnMap["nativeStartTun"] = tsfn;
+    
+    std::thread t([](int fd){
+        OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x00000, "ClashVpn", "startRun %{public}d", fd);
+        startTun(fd, "172.19.0.1/30", "172.19.0.2", "0.0.0.0", (void*)+[](void *tun_interface, int fd){
+            callbackData.fd=fd;
+            auto it = tsfnPool.tsfnMap.find("nativeStartTun");
+            if (it != tsfnPool.tsfnMap.end()){
+                 napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+            }
+        });
+    }, tunFd);
+    
     t.join();
-    napi_value sum;
-    napi_create_double(env, 1, &sum);
   
-    return sum;
-
+    return NULL;
 }
 
-EXTERN_C_START
-static napi_value Init(napi_env env, napi_value exports)
+
+static napi_value nativeInit(napi_env env, napi_callback_info info)
 {
-   mark_socket_func = &mark_socket;
-   void *handle = dlopen("myapp.so", RTLD_LAZY);
-     const char* dlsym_error = dlerror();
-     if (!handle) {
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* path = get_string_from_js(env, args[0]);
+    char* version = get_string_from_js(env, args[1]);
+    OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "nativeInit %{public}s", path);
+    if(coreTest == nullptr){
+          OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "coreTest %{public}s", "no load");
+    }else{
+        coreTest();
+        OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "coreTest %{public}s", "success");
+    }
+    coreInit(path, version, 30);
+    OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "coreInit %{public}s", "success");
+    return NULL;
+}
+
+static napi_value nativeStopTun(napi_env env, napi_callback_info info)
+{
+    stopTun();
+    return NULL;
+}
+
+static napi_value nativeQueryGroupNames(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    int excludeNotSelectable = 0;
+    napi_get_value_int32(env, args[0], &excludeNotSelectable);
+    char* groupInfo = queryGroupNames(excludeNotSelectable);
+    napi_value result;
+    napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
+    free(groupInfo);
+    return result;
+}
+static napi_value nativeQueryGroup(napi_env env, napi_callback_info info)
+{
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* groupName = get_string_from_js(env, args[0]);
+    char* sortMode = get_string_from_js(env, args[1]);
+    char* groupInfo = queryGroup(groupName, sortMode);
+    free(groupName);
+    free(sortMode);
+    napi_value result;
+    napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
+    free(groupInfo);
+    return result;
+}
+
+static napi_value nativeQueryTunnelState(napi_env env, napi_callback_info info)
+{
+    char* groupInfo = queryTunnelState();
+    napi_value result;
+    napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
+    free(groupInfo);
+    return result;
+}
+
+static napi_value nativeWriteOverride(napi_env env, napi_callback_info info)
+{
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    int slot = 0;
+    napi_get_value_int32(env, args[0], &slot);
+    char* groupName = get_string_from_js(env, args[1]);
+    writeOverride(slot, groupName);
+    return NULL;
+}
+static napi_value nativeReadOverride(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    int slot = 0;
+    napi_get_value_int32(env, args[0], &slot);
+    char* groupInfo = readOverride(slot);
+    napi_value result;
+    napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
+    free(groupInfo);
+    return result;
+}
+static napi_value nativeClearOverride(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    int slot = 0;
+    napi_get_value_int32(env, args[0], &slot);
+    clearOverride(slot);
+    return NULL;
+}
+
+static napi_value nativePatchSelector(napi_env env, napi_callback_info info)
+{
+    size_t argc = 2;
+    napi_value args[2] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* selector = get_string_from_js(env, args[0]);
+    char* name = get_string_from_js(env, args[1]);
+    bool res = patchSelector(selector, name);
+    napi_value result;
+    napi_get_boolean(env, res, &result);
+    return result;
+}
+
+
+static napi_value nativeQueryProviders(napi_env env, napi_callback_info info)
+{
+    char* groupInfo = queryProviders();
+    napi_value result;
+    napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
+    free(groupInfo);
+    return result;
+}
+static napi_value nativeQueryConfiguration(napi_env env, napi_callback_info info)
+{
+    char* groupInfo = queryConfiguration();
+    napi_value result;
+    napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
+    free(groupInfo);
+    return result;
+}
+static napi_value nativeCoreVersion(napi_env env, napi_callback_info info)
+{
+    napi_value result;
+    napi_create_string_utf8(env, "1.1.1", NAPI_AUTO_LENGTH, &result);
+    return result;
+}
+
+uint64_t down_scale_traffic(uint64_t value) {
+    if (value > 1042 * 1024 * 1024)
+        return ((value * 100u / 1024u / 1024u / 1024u) & 0x3FFFFFFFu) | (3u << 30u);
+    if (value > 1024 * 1024)
+        return ((value * 100u / 1024u / 1024u) & 0x3FFFFFFFu) | (2u << 30u);
+    if (value > 1024)
+        return ((value * 100u / 1024u) & 0x3FFFFFFFu) | (1u << 30u);
+    return value & 0x3FFFFFFFu;
+}
+
+
+static napi_value nativeQueryTrafficNow(napi_env env, napi_callback_info info)
+{
+    uint64_t upload = 0l, download = 0l;
+    queryNow(&upload, &download);
+    napi_value result;
+    long now = down_scale_traffic(upload) << 32u | down_scale_traffic(download);
+    napi_create_int64(env, now, &result);
+    return result;
+}
+static napi_value nativeQueryTrafficTotal(napi_env env, napi_callback_info info)
+{
+    uint64_t upload = 0l, download = 0l;
+    queryTotal(&upload, &download);
+    napi_value result;
+    long now = down_scale_traffic(upload) << 32u | down_scale_traffic(download);
+    napi_create_int64(env, now, &result);
+    return result;
+}
+
+
+
+static napi_value nativeHealthCheckAll(napi_env env, napi_callback_info info)
+{
+    healthCheckAll();
+    return NULL;
+}static napi_value nativeReset(napi_env env, napi_callback_info info)
+{
+    reset();
+    return NULL;
+}
+static napi_value nativeForceGc(napi_env env, napi_callback_info info)
+{
+    forceGc();
+    return NULL;
+}
+static napi_value nativeStopHttp(napi_env env, napi_callback_info info)
+{
+    stopHttp();
+    return NULL;   
+}
+static napi_value nativeStartHttp(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* groupInfo = get_string_from_js(env, args[0]);
+    startHttp(groupInfo);
+    free(groupInfo);
+    return NULL;
+}
+
+static napi_value nativeSuspend(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    int suspended = 0;
+    napi_get_value_int32(env, args[0], &suspended);
+    suspend(suspended);
+    return NULL;
+}
+static napi_value nativeInstallSideloadGeoip(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    
+    napi_typedarray_type array_type;
+    size_t byte_length;
+    void* data;
+    napi_value arraybuffer;
+    size_t byte_offset;
+    napi_get_typedarray_info(env, args[0], &array_type, &byte_length, &data, &arraybuffer, &byte_offset);
+    
+    void* uint8_data = static_cast<uint8_t*>(data);
+    installSideloadGeoip(uint8_data, byte_length);
+    free(data);
+    return NULL;
+}
+
+
+EXTERN_C_START
+
+void* loadClashSo(){
+    void *handle = dlopen("myapp.so", RTLD_LAZY);
+    const char* dlsym_error = dlerror();
+    if (!handle) {
         fprintf(stderr, "Failed to load library: %s\n", dlsym_error);
         return nullptr;
     }
     LOAD_FUNCTION(handle, notifyDnsChanged);
     LOAD_FUNCTION(handle, coreInit);
+    LOAD_FUNCTION(handle, startHttp);
     LOAD_FUNCTION(handle, stopHttp);
     LOAD_FUNCTION(handle, startTun);
+    LOAD_FUNCTION(handle, stopTun);
+    LOAD_FUNCTION(handle, fetchAndValid);
     LOAD_FUNCTION(handle, load);
-    LOAD_FUNCTION(handle, mark_socket_func);
-    coreInit("/storage/Users/currentUser/Download/", "1.1.1", 30);
+    LOAD_FUNCTION(handle, queryGroupNames);
+    LOAD_FUNCTION(handle, queryGroup);
+    LOAD_FUNCTION(handle, queryTunnelState);
+    LOAD_FUNCTION(handle, writeOverride);
+    LOAD_FUNCTION(handle, readOverride);
+    LOAD_FUNCTION(handle, clearOverride);
+    LOAD_FUNCTION(handle, patchSelector);
+    LOAD_FUNCTION(handle, reset);
+    LOAD_FUNCTION(handle, forceGc);
+    LOAD_FUNCTION(handle, healthCheck);
+    LOAD_FUNCTION(handle, healthCheckAll);
+    LOAD_FUNCTION(handle, queryProviders);
+    LOAD_FUNCTION(handle, updateProvider);
+    LOAD_FUNCTION(handle, suspend);
+    LOAD_FUNCTION(handle, queryNow);
+    LOAD_FUNCTION(handle, queryTotal);
+    LOAD_FUNCTION(handle, queryConfiguration);
+    LOAD_FUNCTION(handle, installSideloadGeoip);
+    LOAD_FUNCTION(handle, subscribeLogcat);
+    LOAD_FUNCTION(handle, coreTest);
+    
+    return nullptr;
+}
+
+static napi_value Init(napi_env env, napi_value exports)
+{
+    OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "%{public}s", "init");
+    loadClashSo();
+    if(coreInit == nullptr){
+        OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "%{public}s", "coreInit no load");
+    } else {
+        OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "%{public}s", "coreInit load success");
+    }
+//    必须这里调用
+//     coreInit("/storage/Users/currentUser/Download/", "1.1.1", 30);
     napi_property_descriptor desc[] = {
-        { "add", nullptr, Add, nullptr, nullptr, nullptr, napi_default, nullptr }
+        { "nativeFetchAndValid", nullptr, nativeFetchAndValid, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeStopTun", nullptr, nativeStopTun, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeStartTun", nullptr, nativeStartTun, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeQueryGroupNames", nullptr, nativeQueryGroupNames, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeQueryGroup", nullptr, nativeQueryGroup, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeLoad", nullptr, nativeLoad, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeQueryTunnelState", nullptr, nativeQueryTunnelState, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeWriteOverride", nullptr, nativeWriteOverride, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeReadOverride", nullptr, nativeReadOverride, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeClearOverride", nullptr, nativeClearOverride, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativePatchSelector", nullptr, nativePatchSelector, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeHealthCheckAll", nullptr, nativeHealthCheckAll, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeInit", nullptr, nativeInit, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeHealthCheck", nullptr, nativeHealthCheck, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeReset", nullptr, nativeReset, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeForceGc", nullptr, nativeForceGc, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeSuspend", nullptr, nativeSuspend, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeQueryProviders", nullptr, nativeQueryProviders, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeUpdateProvider", nullptr, nativeUpdateProvider, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeQueryTrafficNow", nullptr, nativeQueryTrafficNow, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeQueryTrafficTotal", nullptr, nativeQueryTrafficTotal, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeStartHttp", nullptr, nativeStartHttp, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeStopHttp", nullptr, nativeStopHttp, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeInstallSideloadGeoip", nullptr, nativeInstallSideloadGeoip, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeSubscribeLogcat", nullptr, nativeSubscribeLogcat, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeCoreVersion", nullptr, nativeCoreVersion, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeQueryConfiguration", nullptr, nativeQueryConfiguration, nullptr, nullptr, nullptr, napi_default, nullptr },
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

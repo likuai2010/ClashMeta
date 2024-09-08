@@ -22,7 +22,7 @@
         "description": "$string:EntryAbility_desc",
         "icon": "$media:layered_image",
         "label": "$string:EntryAbility_label",
-        "startWindowIcon": "$media:startIcon",
+        "startWindowIcon": "$media:logo",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
 
@@ -39,6 +39,11 @@
       }
     ],
     "extensionAbilities": [
+      {
+        "name": "ClashVpnAbility",
+        "srcEntry": "./ets/ipc/ClashVpnAbility.ets",
+        "type": "vpn"
+      },
       {
         "name": "EntryBackupAbility",
         "srcEntry": "./ets/entrybackupability/EntryBackupAbility.ets",

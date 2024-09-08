@@ -16,4 +16,4 @@ include_directories(${NATIVERENDER_ROOT_PATH}
 #add_subdirectory(testC)
 add_library(entry SHARED napi_init.cpp)
 
-target_link_libraries(entry PUBLIC libace_napi.z.so )
+target_link_libraries(entry PUBLIC libace_napi.z.so hilog_ndk.z)

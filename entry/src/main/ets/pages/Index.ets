@@ -1,74 +1,139 @@
-import { hilog } from '@kit.PerformanceAnalysisKit';
-import testNapi from 'libentry.so';
 import { vpnExtension } from '@kit.NetworkKit';
-import { common } from '@kit.AbilityKit';
+import { common, Want } from '@kit.AbilityKit';
+import { Icon } from './compoments/icons';
+import { ActionCard,  ActionLabel } from './compoments/common';
+import { NetworkSettingsPage, SettingsPage } from './SettingsPage';
+import { ConfigEditPage, ConfigsPage } from './ConfigEditPage';
+import { ProxysPage } from './ProxyPage';
+import profileViewModel from '../entryability/ProfileViewModel';
+import clashProxyService from '../ipc/ClashProxyService';
+import { Profile } from '../entryability/ProfileRepo';
+import { ConfigViewer } from './ConfigViewer';
+import logger from '../pages/logs';
+import { nativeInit } from 'libentry.so';
 
-class Address {
-  address: string;
-  family: number;
+let want: Want = {
+  deviceId: "",
+  bundleName: "com.xiaobai.clash",
+  abilityName: "ClashVpnAbility",
+};
 
-  constructor(address: string, family: number) {
-    this.address = address;
-    this.family = family;
+@Builder
+function PageRouter(name: string) {
+  if (name === "proxys") {
+    ProxysPage()
+  } else if (name === "settings") {
+    SettingsPage()
+  }
+  else if (name === "network-settings") {
+    NetworkSettingsPage()
+  }
+  else if (name === "configs") {
+    ConfigsPage()
+  }else if (name === "config-edit") {
+    ConfigEditPage()
+  } else if (name === "config-viewer") {
+    ConfigViewer()
   }
 }
-class AddressWithPrefix {
-  address: Address;
-  prefixLength: number;
-  constructor(address: Address, prefixLength: number) {
-    this.address = address;
-    this.prefixLength = prefixLength;
-  }
-}
-class Config {
-  addresses: AddressWithPrefix[];
-  mtu: number;
-  dnsAddresses: string[];
-  constructor(
-    tunIp: string,
-    blockedAppName: string
-  ) {
-    this.addresses = [
-      new AddressWithPrefix(new Address(tunIp, 1), 24)
-    ];
-    this.mtu = 1400;
-    this.dnsAddresses = ["172.19.0.2"];
-  }
-}
+
+
 @Entry
 @Component
 struct Index {
-  private tunIp: string = '172.19.0.1';
-  @State message: string = 'Hello World';
+
   vpnConnection = vpnExtension.createVpnConnection(getContext(this) as common.VpnExtensionContext);
+  @Provide('router') routerInfos: NavPathStack = new NavPathStack()
+  @State running: boolean = false;
+  @State profile: Profile | undefined = undefined
+  async aboutToAppear(): Promise<void> {
+    this.profile = await profileViewModel.getActive()
+    // let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+    // this.running = result
+     //  clashViewModel.init(getContext(this))
+     // clashViewModel.load()
+    // this.routerInfos.setInterception({
+    //   willShow: async (from: NavDestinationContext | "navBar", to: NavDestinationContext | "navBar",
+    //     operation: NavigationOperation, animated: boolean) => {
+    //   }
+    // })
+  }
+
+  async startVpn(){
+    logger.clear()
+    logger.log("index","开启vpn后台服务")
+    await vpnExtension.startVpnExtensionAbility(want);
+    nativeInit("1111","11111")
+    let profile = await profileViewModel.getActive()
+    this.profile = profile
+    // if(!profile){
+    //   promptAction.showToast({message:"没有选择配置文件"})
+    //   return
+    // }
+    this.running = true
+    // let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+    // if(!result){
+    //   promptAction.showToast({message:"rpc服务启动失败"})
+    // }
+  }
+  async stopVpn(){
+    this.running = false
+    await vpnExtension.stopVpnExtensionAbility(want)
+    clashProxyService.stop(getContext(this) as common.UIAbilityContext)
+  }
   build() {
-    Row() {
-      Column() {
-        Text(this.message)
-          .fontSize(50)
-          .fontWeight(FontWeight.Bold)
-          .onClick(async () => {
-            let config = new Config(this.tunIp, "");
-            try {
-              let tunFd = await this.vpnConnection.create(config)
-              hilog.info(0x0000, 'testTag', 'start tun %{public}d', tunFd);
-              testNapi.add(tunFd, 3, (fd:number)=>{
-                hilog.info(0x0000, 'ClashMeta', 'protect tun %{public}d', fd);
-                this.vpnConnection.protect(fd).catch((e:Error)=>{
-                  hilog.info(0x0000, 'testTag', 'protect failed %{public}s', e.message);
-                })
-              })
-
-            } catch (e) {
-              this.vpnConnection.destroy()
-              hilog.info(0x0000, 'testTag', 'vpn failure %{public}s', e.message);
-            }
-
-
-          })
-      }
-      .width('100%')
-    }
-    .height('100%')
+    Column() {
+      Navigation(this.routerInfos) {
+        Column() {
+          Row(){
+            Icon({icon:$r(`app.media.ic_baseline_meta`)})
+            Text("Clash Meta for HarmonyOS").fontSize(25).fontWeight(FontWeight.Bold)
+          }.padding({ top: 20 })
+          if(!this.running){
+            ActionCard({title:"已停止", value: "点击启动12", isRunning: this.running, icon:"ic_outline_not_interested", click: async ()=>{
+              this.startVpn()
+            } })
+          }else{
+            ActionCard({title:"运行中", value: "已转发",  isRunning: this.running,  icon:"ic_outline_check_circle", click: async ()=>{
+              this.stopVpn()
+            }})
+          }
+          // ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click:()=>{
+          //   this.routerInfos.pushPath({name:"proxys"})
+          // }})
+          ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
+            this.routerInfos.pushPath({name:"configs"})
+          }})
+          ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
+            this.routerInfos.pushPath({name: "config-viewer", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
+          }})
+          // ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
+          //   this.routerInfos.pushPath({name:"settings"})
+          // }})
+          // ActionLabel({title:"关于", icon:"ic_baseline_info"})
+          // Text(this.message)
+          //   .fontSize(50)
+          //   .fontWeight(FontWeight.Bold)
+          //   .onClick(async () => {
+          //     let config = new Config(this.tunIp, "");
+          //     try {
+          //       let tunFd = await this.vpnConnection.create(config)
+          //       hilog.info(0x0000, 'testTag', 'start tun %{public}d', tunFd);
+          //       testNapi.add(tunFd, 3, (fd:number)=>{
+          //         hilog.info(0x0000, 'ClashMeta', 'protect tun %{public}d', fd);
+          //         this.vpnConnection.protect(fd).catch((e:Error)=>{
+          //           hilog.info(0x0000, 'testTag', 'protect failed %{public}s', e.message);
+          //         })
+          //       })
+          //     } catch (e) {
+          //       this.vpnConnection.destroy()
+          //       hilog.info(0x0000, 'testTag', 'vpn failure %{public}s', e.message);
+          //     }
+          //   })
+        }.height('100%')
+        .width('100%')
+      }.navDestination(PageRouter).mode(NavigationMode.Stack)
+    }.height('100%')
   }
 }
+
