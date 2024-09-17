@@ -36,6 +36,7 @@ class Config {
   }
 }
 export  class ClashVpnService{
+  noVpn:boolean = false // 模拟器开启
   private tunIp: string = '172.19.0.1';
   running: boolean = false
   vpnConnection : vpnExtension.VpnConnection | undefined
@@ -55,8 +56,10 @@ export  class ClashVpnService{
     let config = new Config(this.tunIp, "");
     let tunFd = -1
     try {
-      this.vpnConnection = vpnExtension.createVpnConnection(context as common.VpnExtensionContext);
-      tunFd = await this.vpnConnection.create(config)
+      if(!this.noVpn){
+        this.vpnConnection = vpnExtension.createVpnConnection(context as common.VpnExtensionContext);
+        tunFd = await this.vpnConnection.create(config)
+      }
       logger.log("ClashVPN", `获取tunFd: ${tunFd}`)
       logger.log("ClashVPN", `加载配置文件(golang) ${configPath}`)
       nativeLoad(configPath, (type:string)=>{

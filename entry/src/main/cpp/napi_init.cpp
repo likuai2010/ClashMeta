@@ -5,6 +5,7 @@
 #include <dlfcn.h>
 #include "myapp.h"
 #include "hilog/log.h"
+#include <thread>
 
 typedef void (*notifyDnsChanged_t)(c_string dnsList);
 typedef void (*notifyInstalledAppsChanged_t)(c_string uids);
@@ -69,7 +70,7 @@ queryProviders_t queryProviders;
 updateProvider_t updateProvider;
 suspend_t suspend;
 installSideloadGeoip_t installSideloadGeoip;
-#include <thread>
+
 
 #define LOAD_FUNCTION(handle, func) \
     func = (typeof(func))dlsym(handle, #func); \
@@ -178,13 +179,16 @@ static napi_value nativeLoad(napi_env env, napi_callback_info info)
         napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
         }, &tsfn);
     tsfnPool.tsfnMap["nativeLoad"] = tsfn;
-    load((void*)+[](char* completable, char* exception){
-        callbackData.content = exception;
-        auto it = tsfnPool.tsfnMap.find("nativeLoad");
-        if (it != tsfnPool.tsfnMap.end()){
-            napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
-        }
+    std::thread t([](char * path){
+        load((void*)+[](char* completable, char* exception){
+                callbackData.content = exception;
+                auto it = tsfnPool.tsfnMap.find("nativeLoad");
+                if (it != tsfnPool.tsfnMap.end()){
+                    napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+                }
+            }, path);
     }, path);
+    t.join();
     return NULL;
 }
 static napi_value nativeHealthCheck(napi_env env, napi_callback_info info)
@@ -197,26 +201,28 @@ static napi_value nativeHealthCheck(napi_env env, napi_callback_info info)
     napi_create_string_latin1(env, "nativeHealthCheck'", NAPI_AUTO_LENGTH, &resourceName);
     napi_threadsafe_function tsfn;
     napi_create_threadsafe_function(env, args[1], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
-       CallbackData* cd = (CallbackData *)data;
+        CallbackData* cd = (CallbackData *)data;
         if (cd == nullptr)
             return ;
         napi_value params[1];
-        if(cd->content != NULL){
+        if (cd->content != NULL){
             napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[0]);
-        }else{
-           napi_get_undefined(env, &params[0]);
+        } else {
+            napi_get_undefined(env, &params[0]);
         }
         napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
-        }, &tsfn);
+    }, &tsfn);
     tsfnPool.tsfnMap["nativeHealthCheck"] = tsfn;
-    
-    healthCheck((void *)+[](char* completable, char* exception){ 
-        callbackData.content = exception;
-        auto it = tsfnPool.tsfnMap.find("nativeHealthCheck");
-        if (it != tsfnPool.tsfnMap.end()){
-            napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
-        }
+    std::thread t([](char* name){
+         healthCheck((void *)+[](char* completable, char* exception){ 
+            callbackData.content = exception;
+            auto it = tsfnPool.tsfnMap.find("nativeHealthCheck");
+            if (it != tsfnPool.tsfnMap.end()){
+                napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+            }
+         }, name);
     }, name);
+    t.join();
     free(name);
     return NULL;
 }
@@ -241,14 +247,16 @@ static napi_value nativeSubscribeLogcat(napi_env env, napi_callback_info info)
         napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
         }, &tsfn);
     tsfnPool.tsfnMap["nativeSubscribeLogcat"] = tsfn;
-    
-    subscribeLogcat((void *)+[](void *logcat_interface, char *payload){ 
-        callbackData.content = payload;
-        auto it = tsfnPool.tsfnMap.find("nativeSubscribeLogcat");
-        if (it != tsfnPool.tsfnMap.end()){
-            napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
-        }
+    std::thread t([](){
+        subscribeLogcat((void *)+[](void *logcat_interface, char *payload){ 
+            callbackData.content = payload;
+            auto it = tsfnPool.tsfnMap.find("nativeSubscribeLogcat");
+            if (it != tsfnPool.tsfnMap.end()){
+                napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+            }
+        });
     });
+    t.join();
     return NULL;
 }
 static napi_value nativeUpdateProvider(napi_env env, napi_callback_info info)
@@ -299,9 +307,7 @@ static napi_value nativeStartTun(napi_env env, napi_callback_info info)
             }
         });
     }, tunFd);
-    
     t.join();
-  
     return NULL;
 }
 
@@ -314,20 +320,20 @@ static napi_value nativeInit(napi_env env, napi_callback_info info)
     char* path = get_string_from_js(env, args[0]);
     char* version = get_string_from_js(env, args[1]);
     OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "nativeInit %{public}s", path);
-    if(coreTest == nullptr){
-          OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "coreTest %{public}s", "no load");
-    }else{
-        coreTest();
-        OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "coreTest %{public}s", "success");
-    }
-    coreInit(path, version, 30);
-    OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "coreInit %{public}s", "success");
+    std::thread t([](char* path, char *version){
+         coreInit(path, version, 30);
+         OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "coreInit %{public}s", "success");
+    },path, version);
+    t.join();
     return NULL;
 }
 
 static napi_value nativeStopTun(napi_env env, napi_callback_info info)
 {
-    stopTun();
+    std::thread t([](){
+       stopTun();
+    });
+    t.join();
     return NULL;
 }
 
@@ -337,8 +343,13 @@ static napi_value nativeQueryGroupNames(napi_env env, napi_callback_info info)
     napi_value args[1] = {nullptr};
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     int excludeNotSelectable = 0;
+   
     napi_get_value_int32(env, args[0], &excludeNotSelectable);
-    char* groupInfo = queryGroupNames(excludeNotSelectable);
+    char* groupInfo;
+    std::thread t([](int excludeNotSelectable, char* &groupInfo){
+         groupInfo = queryGroupNames(excludeNotSelectable);
+    }, excludeNotSelectable, std::ref(groupInfo));
+    t.join();
     napi_value result;
     napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
     free(groupInfo);
@@ -351,7 +362,13 @@ static napi_value nativeQueryGroup(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     char* groupName = get_string_from_js(env, args[0]);
     char* sortMode = get_string_from_js(env, args[1]);
-    char* groupInfo = queryGroup(groupName, sortMode);
+    char* groupInfo;
+    std::thread t([](char* groupName, char* sortMode, char* &groupInfo){
+        char* newValue = queryGroup(groupName, sortMode);
+        groupInfo = new char[strlen(newValue) + 1];
+        strcpy(groupInfo, newValue); 
+     }, groupName, sortMode, std::ref(groupInfo));
+    t.join();
     free(groupName);
     free(sortMode);
     napi_value result;
@@ -377,7 +394,10 @@ static napi_value nativeWriteOverride(napi_env env, napi_callback_info info)
     int slot = 0;
     napi_get_value_int32(env, args[0], &slot);
     char* groupName = get_string_from_js(env, args[1]);
-    writeOverride(slot, groupName);
+    std::thread t([](int slot, char * groupName){
+        writeOverride(slot, groupName);
+    }, slot, groupName);
+    t.join();
     return NULL;
 }
 static napi_value nativeReadOverride(napi_env env, napi_callback_info info)
@@ -387,7 +407,12 @@ static napi_value nativeReadOverride(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     int slot = 0;
     napi_get_value_int32(env, args[0], &slot);
-    char* groupInfo = readOverride(slot);
+  
+    char* groupInfo;
+    std::thread t([](int slot, char* &groupInfo){
+         groupInfo = readOverride(slot);
+    }, slot, std::ref(groupInfo));
+    t.join();
     napi_value result;
     napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
     free(groupInfo);
@@ -400,7 +425,10 @@ static napi_value nativeClearOverride(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     int slot = 0;
     napi_get_value_int32(env, args[0], &slot);
-    clearOverride(slot);
+    std::thread t([](int slot){
+         clearOverride(slot);
+    },slot);
+    t.join();
     return NULL;
 }
 
@@ -411,7 +439,12 @@ static napi_value nativePatchSelector(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     char* selector = get_string_from_js(env, args[0]);
     char* name = get_string_from_js(env, args[1]);
-    bool res = patchSelector(selector, name);
+    bool res;
+    
+    std::thread t([](char* selector, char *name, bool &result){
+        result = patchSelector(selector, name);
+    },selector, name, std::ref(res));
+    t.join();
     napi_value result;
     napi_get_boolean(env, res, &result);
     return result;
@@ -420,7 +453,11 @@ static napi_value nativePatchSelector(napi_env env, napi_callback_info info)
 
 static napi_value nativeQueryProviders(napi_env env, napi_callback_info info)
 {
-    char* groupInfo = queryProviders();
+    char* groupInfo;
+    std::thread t([]( char* &groupInfo){
+        groupInfo = queryProviders();
+    }, std::ref(groupInfo));
+    t.join();
     napi_value result;
     napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
     free(groupInfo);
@@ -428,7 +465,11 @@ static napi_value nativeQueryProviders(napi_env env, napi_callback_info info)
 }
 static napi_value nativeQueryConfiguration(napi_env env, napi_callback_info info)
 {
-    char* groupInfo = queryConfiguration();
+    char* groupInfo;
+    std::thread t([]( char* &groupInfo){
+        groupInfo = queryConfiguration();
+    }, std::ref(groupInfo));
+    t.join();
     napi_value result;
     napi_create_string_utf8(env, groupInfo, NAPI_AUTO_LENGTH, &result);
     free(groupInfo);
@@ -479,17 +520,26 @@ static napi_value nativeHealthCheckAll(napi_env env, napi_callback_info info)
     return NULL;
 }static napi_value nativeReset(napi_env env, napi_callback_info info)
 {
-    reset();
+    std::thread t([](){
+        reset();
+    });
+    t.join();
     return NULL;
 }
 static napi_value nativeForceGc(napi_env env, napi_callback_info info)
 {
-    forceGc();
+    std::thread t([](){
+        forceGc();
+    });
+    t.join();
     return NULL;
 }
 static napi_value nativeStopHttp(napi_env env, napi_callback_info info)
 {
-    stopHttp();
+    std::thread t([](){
+        stopHttp();
+    });
+    t.join();
     return NULL;   
 }
 static napi_value nativeStartHttp(napi_env env, napi_callback_info info)
@@ -498,7 +548,10 @@ static napi_value nativeStartHttp(napi_env env, napi_callback_info info)
     napi_value args[1] = {nullptr};
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     char* groupInfo = get_string_from_js(env, args[0]);
-    startHttp(groupInfo);
+    std::thread t([](char * groupInfo){
+        startHttp(groupInfo);
+    }, groupInfo);
+    t.join();
     free(groupInfo);
     return NULL;
 }

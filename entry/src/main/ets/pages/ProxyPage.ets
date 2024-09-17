@@ -17,9 +17,11 @@ struct ProxyNode {
       Blank().height(5)
       Row(){
         Text(this.type).fontColor(this.selected ? Color.White : Color.Black)
-        Text(this.delay).fontColor(this.selected ? Color.White : Color.Black)
+        if (this.delay !== "65535"){
+          Text(this.delay + "ms").fontColor(this.selected ? Color.White : Color.Black)
+        }
       }.justifyContent(FlexAlign.SpaceBetween).width("100%")
-    }.width("100%").padding(5).backgroundColor(this.selected ? "#1e4376" : Color.White).border({radius:5})
+    }.alignItems(HorizontalAlign.Start).width("100%").padding(5).backgroundColor(this.selected ? "#1e4376" : Color.White).border({radius:5})
   }
 }
 
@@ -33,14 +35,17 @@ interface MenuInfo{
 export struct ProxysPage {
   replay: NavigationMenuItem = {'value': "", 'icon': "resources/base/media/ic_baseline_flash_on.svg", 'action': ()=> {}}
   more: NavigationMenuItem = {'value': "", 'icon': "resources/base/media/ic_baseline_more_vert.svg", 'action': ()=> {}}
-  proxy: string[] = ["11","22","33","44","55"]
+  proxy: string[] = []
   @Builder
   Radio() {
     Radio({value:"", group:""})
   }
   @State  proxyModel: TunnelState = TunnelState.None
   @State layoutModel: number = 2
-  @State  sortModel: string ="1"
+  @State  sortModel:ProxySort = ProxySort.Default
+
+  @State testing: boolean = false
+  @State tabIndexes: number = 0
   @Builder
   ModelMenu() {
     this.buildMenu([
@@ -59,7 +64,6 @@ export struct ProxysPage {
       await clashProxyService.patchOverride(OverrideSlot.Session, o)
       const configPath = await profileViewModel.getActiveConfigPath()
       if (configPath){
-        console.log("fetchProxyGroupList", configPath)
         await clashProxyService.load(configPath!)
         this.fetchProxyGroupList()
       }
@@ -92,11 +96,12 @@ export struct ProxysPage {
   @Builder
   SortMenu() {
     this.buildMenu([
-      {label:"默认", value: "1"},
-      {label:"名称", value: "2"},
-      {label:"延迟", value: "3"},
+      {label:"默认", value: ProxySort.Default},
+      {label:"名称", value: ProxySort.Title},
+      {label:"延迟", value: ProxySort.Delay},
     ], this.sortModel, (value)=>{
-      this.sortModel = value
+      this.sortModel = value as ProxySort
+      this.fetchProxyGroupList()
     })
   }
 
@@ -113,11 +118,26 @@ export struct ProxysPage {
     }
   }
   @Builder
-  MoreMenu(){
+  MoreMenu(test: boolean){
     Row(){
       Icon({
         icon:$r("app.media.ic_baseline_flash_on"),
+        iconColor: test ? "#ccc": Color.Black,
         iconSize: 30,
+      }).onClick(async ()=>{
+        if (this.testing){
+            return
+        }
+        this.testing = true
+        try {
+          await clashProxyService.healthCheck(this.groupNames[this.tabIndexes])
+          this.testing = false
+          this.fetchProxyGroupList()
+        } catch (e) {
+          promptAction.showToast({message: e.message})
+          this.testing = false
+        }
+
       })
       Icon({
         icon:$r("app.media.ic_baseline_more_vert")
@@ -135,22 +155,21 @@ export struct ProxysPage {
     console.debug("fetchProxyGroupList ", names,  this.proxyModel)
     let dict: HashMap<string, ProxyGroup> = new HashMap()
     for (let n of names){
-      const proxyGroup = await clashProxyService.queryProxyGroup(n, ProxySort.Default)
+      const proxyGroup = await clashProxyService.queryProxyGroup(n, this.sortModel)
       dict.set(n, proxyGroup)
     }
     this.groupDict = dict
-    this.groupNames = names
+    this.groupNames = ["Proxy", "xxxxxx","5353"]
   }
   async selectNode(i: number, g: string, node: Proxy){
     this.active = i
     let result = await clashProxyService.patchSelector(g, node.name)
-    promptAction.showToast({message:"切换节点:" + result})
+    promptAction.showToast({message: "切换节点:" + result })
   }
   scroller: Scroller = new Scroller();
   private controller: TabsController = new TabsController();
-  @State active:number = 0
+  @State active: number = 0
   build() {
-
     NavDestination() {
       Column() {
         Tabs({ barPosition: BarPosition.Start, controller: this.controller }) {
@@ -172,8 +191,10 @@ export struct ProxysPage {
             }
             .tabBar(g)
           }, (i:string) => i)
-        }
+        }.barMode(BarMode.Scrollable).onChange((index)=>{
+          this.tabIndexes = index
+        })
       }.width('100%')
-    }.menus(this.MoreMenu).title("代理")
+    }.menus(this.MoreMenu(this.testing)).title("代理")
   }
 }

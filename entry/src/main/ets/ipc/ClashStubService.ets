@@ -15,6 +15,7 @@ import {
   nativeReadOverride,
   nativeUpdateProvider,
   nativeWriteOverride} from 'libentry.so';
+import logger from '../pages/logs';
 
 
 export class ClashStubService extends rpc.RemoteObject {
@@ -75,7 +76,8 @@ export class ClashStubService extends rpc.RemoteObject {
         }
         case ClashRpcType.healthCheck:{
           reply.writeNoException()
-          nativeHealthCheck(data.readString(),()=>{
+          nativeHealthCheck(data.readString(),(value)=>{
+            logger.log("nativeHealthCheck11", value)
             reply.writeString("")
             resolve(true)
           })

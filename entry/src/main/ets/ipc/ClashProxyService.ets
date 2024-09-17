@@ -77,8 +77,12 @@ class ClashProxyService implements  IClashManager{
     return result as boolean
   }
 
-  healthCheck(group: string): Promise<void> {
-    throw new Error('Method not implemented.');
+  async healthCheck(group: string): Promise<void> {
+    await this.sendMessageRequest(ClashRpcType.healthCheck,(data)=>{
+      data.writeString(group)
+    }, (reply)=>{
+      return reply.readString()
+    })
   }
 
   updateProvider(type: ProviderType, name: string): Promise<void> {
@@ -104,8 +108,12 @@ class ClashProxyService implements  IClashManager{
     return
   }
 
-  clearOverride(slot: OverrideSlot): Promise<void> {
-    throw new Error('Method not implemented.');
+  async clearOverride(slot: OverrideSlot): Promise<void> {
+    await this.sendMessageRequest(ClashRpcType.clearOverride,(data)=>{
+      data.writeInt(slot)
+    }, (reply)=>{
+      return reply.readString()
+    })
   }
 
   async sendMessageRequest(

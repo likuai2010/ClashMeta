@@ -10,7 +10,7 @@ import clashProxyService from '../ipc/ClashProxyService';
 import { Profile } from '../entryability/ProfileRepo';
 import { ConfigViewer } from './ConfigViewer';
 import logger from '../pages/logs';
-import { nativeInit } from 'libentry.so';
+import { promptAction } from '@kit.ArkUI';
 
 let want: Want = {
   deviceId: "",
@@ -63,7 +63,6 @@ struct Index {
     logger.clear()
     logger.log("index","开启vpn后台服务")
     await vpnExtension.startVpnExtensionAbility(want);
-    nativeInit("1111","11111")
     let profile = await profileViewModel.getActive()
     this.profile = profile
     // if(!profile){
@@ -71,69 +70,73 @@ struct Index {
     //   return
     // }
     this.running = true
-    // let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
-    // if(!result){
-    //   promptAction.showToast({message:"rpc服务启动失败"})
-    // }
+    let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+    if(!result){
+      promptAction.showToast({message:"rpc服务启动失败"})
+    }
   }
   async stopVpn(){
     this.running = false
     await vpnExtension.stopVpnExtensionAbility(want)
     clashProxyService.stop(getContext(this) as common.UIAbilityContext)
   }
+  scroller: Scroller = new Scroller();
   build() {
-    Column() {
-      Navigation(this.routerInfos) {
-        Column() {
-          Row(){
-            Icon({icon:$r(`app.media.ic_baseline_meta`)})
-            Text("Clash Meta for HarmonyOS").fontSize(25).fontWeight(FontWeight.Bold)
-          }.padding({ top: 20 })
-          if(!this.running){
-            ActionCard({title:"已停止", value: "点击启动12", isRunning: this.running, icon:"ic_outline_not_interested", click: async ()=>{
-              this.startVpn()
-            } })
-          }else{
-            ActionCard({title:"运行中", value: "已转发",  isRunning: this.running,  icon:"ic_outline_check_circle", click: async ()=>{
-              this.stopVpn()
+    Navigation(this.routerInfos) {
+      List() {
+        ListItem() {
+          Column() {
+            Row(){
+              Icon({icon:$r(`app.media.ic_baseline_meta`)})
+              Text("Clash Meta for HarmonyOS").fontSize(25).fontWeight(FontWeight.Bold)
+            }.padding({ top: 20 })
+            if(!this.running){
+              ActionCard({title:"已停止", value: "点击启动", isRunning: this.running, icon:"ic_outline_not_interested", click: async ()=>{
+                this.startVpn()
+              } })
+            }else{
+              ActionCard({title:"运行中", value: "已转发",  isRunning: this.running,  icon:"ic_outline_check_circle", click: async ()=>{
+                this.stopVpn()
+              }})
+            }
+            ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click:()=>{
+              this.routerInfos.pushPath({name:"proxys"})
             }})
+            ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
+              this.routerInfos.pushPath({name:"configs"})
+            }})
+            ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
+              this.routerInfos.pushPath({name: "config-viewer", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
+            }})
+
+            // ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
+            //   this.routerInfos.pushPath({name:"settings"})
+            // }})
+            // ActionLabel({title:"关于", icon:"ic_baseline_info"})
+            // Text(this.message)
+            //   .fontSize(50)
+            //   .fontWeight(FontWeight.Bold)
+            //   .onClick(async () => {
+            //     let config = new Config(this.tunIp, "");
+            //     try {
+            //       let tunFd = await this.vpnConnection.create(config)
+            //       hilog.info(0x0000, 'testTag', 'start tun %{public}d', tunFd);
+            //       testNapi.add(tunFd, 3, (fd:number)=>{
+            //         hilog.info(0x0000, 'ClashMeta', 'protect tun %{public}d', fd);
+            //         this.vpnConnection.protect(fd).catch((e:Error)=>{
+            //           hilog.info(0x0000, 'testTag', 'protect failed %{public}s', e.message);
+            //         })
+            //       })
+            //     } catch (e) {
+            //       this.vpnConnection.destroy()
+            //       hilog.info(0x0000, 'testTag', 'vpn failure %{public}s', e.message);
+            //     }
+            //   })
           }
-          // ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click:()=>{
-          //   this.routerInfos.pushPath({name:"proxys"})
-          // }})
-          ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
-            this.routerInfos.pushPath({name:"configs"})
-          }})
-          ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
-            this.routerInfos.pushPath({name: "config-viewer", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
-          }})
-          // ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
-          //   this.routerInfos.pushPath({name:"settings"})
-          // }})
-          // ActionLabel({title:"关于", icon:"ic_baseline_info"})
-          // Text(this.message)
-          //   .fontSize(50)
-          //   .fontWeight(FontWeight.Bold)
-          //   .onClick(async () => {
-          //     let config = new Config(this.tunIp, "");
-          //     try {
-          //       let tunFd = await this.vpnConnection.create(config)
-          //       hilog.info(0x0000, 'testTag', 'start tun %{public}d', tunFd);
-          //       testNapi.add(tunFd, 3, (fd:number)=>{
-          //         hilog.info(0x0000, 'ClashMeta', 'protect tun %{public}d', fd);
-          //         this.vpnConnection.protect(fd).catch((e:Error)=>{
-          //           hilog.info(0x0000, 'testTag', 'protect failed %{public}s', e.message);
-          //         })
-          //       })
-          //     } catch (e) {
-          //       this.vpnConnection.destroy()
-          //       hilog.info(0x0000, 'testTag', 'vpn failure %{public}s', e.message);
-          //     }
-          //   })
-        }.height('100%')
-        .width('100%')
-      }.navDestination(PageRouter).mode(NavigationMode.Stack)
-    }.height('100%')
+        }
+      }
+      .height('100%')
+    }.navDestination(PageRouter).mode(NavigationMode.Stack)
   }
 }
 
