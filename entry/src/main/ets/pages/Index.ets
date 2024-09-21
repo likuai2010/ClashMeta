@@ -70,10 +70,7 @@ struct Index {
     //   return
     // }
     this.running = true
-    let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
-    if(!result){
-      promptAction.showToast({message:"rpc服务启动失败"})
-    }
+
   }
   async stopVpn(){
     this.running = false
@@ -99,7 +96,11 @@ struct Index {
                 this.stopVpn()
               }})
             }
-            ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click:()=>{
+            ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
+              let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+              if(!result){
+                promptAction.showToast({message:"rpc服务启动失败"})
+              }
               this.routerInfos.pushPath({name:"proxys"})
             }})
             ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{

@@ -77,7 +77,6 @@ export class ClashStubService extends rpc.RemoteObject {
         case ClashRpcType.healthCheck:{
           reply.writeNoException()
           nativeHealthCheck(data.readString(),(value)=>{
-            logger.log("nativeHealthCheck11", value)
             reply.writeString("")
             resolve(true)
           })

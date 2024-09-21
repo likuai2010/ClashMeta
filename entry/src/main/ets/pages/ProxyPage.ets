@@ -159,7 +159,7 @@ export struct ProxysPage {
       dict.set(n, proxyGroup)
     }
     this.groupDict = dict
-    this.groupNames = ["Proxy", "xxxxxx","5353"]
+    this.groupNames = names
   }
   async selectNode(i: number, g: string, node: Proxy){
     this.active = i
