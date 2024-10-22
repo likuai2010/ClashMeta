@@ -5,7 +5,7 @@ $target="aarch64"
 $outdir="arm64-v8a"
 # x86_64 arm64-v8a
 #$OHOS_NATIVE_HOME="G:/huawei/SDK/HarmonyOS-NEXT-DB1/openharmony/native"
-$OHOS_NATIVE_HOME="G:/huawei/DevEcoStudio/sdk/HarmonyOS-NEXT-DB3/openharmony/native"
+$OHOS_NATIVE_HOME="G:/huawei/SDK/HarmonyOS-NEXT-DB1/openharmony/native"
 $BASE_FLAGS="-Wno-error --sysroot=$OHOS_NATIVE_HOME/sysroot -fdata-sections -D__MUSL__ -ffunction-sections -funwind-tables -fstack-protector-strong -no-canonical-prefixes -fno-addrsig -Wa,--noexecstack -fPIC"
 $TOOLCHAIN="$OHOS_NATIVE_HOME/llvm"
 

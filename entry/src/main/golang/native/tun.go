@@ -36,7 +36,7 @@ func (t *remoteTun) markSocket(fd int) {
 	}
 
 	C.mark_socket(t.callback, C.int(fd))
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 }
 
 func (t *remoteTun) querySocketUid(protocol int, source, target string) int {

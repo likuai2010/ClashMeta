@@ -5,12 +5,13 @@ import { ActionCard,  ActionLabel } from './compoments/common';
 import { NetworkSettingsPage, SettingsPage } from './SettingsPage';
 import { ConfigEditPage, ConfigsPage } from './ConfigEditPage';
 import { ProxysPage } from './ProxyPage';
-import profileViewModel from '../entryability/ProfileViewModel';
+import profileViewModel, { ProfileViewModel } from '../entryability/ProfileViewModel';
 import clashProxyService from '../ipc/ClashProxyService';
 import { Profile } from '../entryability/ProfileRepo';
 import { ConfigViewer } from './ConfigViewer';
 import logger from '../pages/logs';
 import { promptAction } from '@kit.ArkUI';
+import { ClashVpnService } from '../entryability/ClashVpnService';
 
 let want: Want = {
   deviceId: "",
@@ -62,13 +63,13 @@ struct Index {
   async startVpn(){
     logger.clear()
     logger.log("index","开启vpn后台服务")
-    await vpnExtension.startVpnExtensionAbility(want);
     let profile = await profileViewModel.getActive()
     this.profile = profile
-    // if(!profile){
-    //   promptAction.showToast({message:"没有选择配置文件"})
-    //   return
-    // }
+    if(!profile){
+      promptAction.showToast({message:"没有选择配置文件"})
+      return
+    }
+    await vpnExtension.startVpnExtensionAbility(want);
     this.running = true
 
   }
@@ -78,6 +79,18 @@ struct Index {
     clashProxyService.stop(getContext(this) as common.UIAbilityContext)
   }
   scroller: Scroller = new Scroller();
+
+  // async testVpn(){
+  //   const clashVpnService = new ClashVpnService(await profileViewModel.getHome());
+  //   const profile = await profileViewModel.getActive()
+  //   if (profile != undefined){
+  //     let configPath = await profileViewModel.getConfigPath(profile)
+  //     clashVpnService.StartVpn(configPath, getContext(this))
+  //   }else{
+  //     logger.log("ClashVPN", `配置文件 没有加载 `);
+  //   }
+  // }
+
   build() {
     Navigation(this.routerInfos) {
       List() {
@@ -85,7 +98,7 @@ struct Index {
           Column() {
             Row(){
               Icon({icon:$r(`app.media.ic_baseline_meta`)})
-              Text("Clash Meta for HarmonyOS").fontSize(25).fontWeight(FontWeight.Bold)
+              Text("Clash Meta For HarmonyOS").fontSize(20).fontWeight(FontWeight.Bold)
             }.padding({ top: 20 })
             if(!this.running){
               ActionCard({title:"已停止", value: "点击启动", isRunning: this.running, icon:"ic_outline_not_interested", click: async ()=>{
@@ -95,14 +108,17 @@ struct Index {
               ActionCard({title:"运行中", value: "已转发",  isRunning: this.running,  icon:"ic_outline_check_circle", click: async ()=>{
                 this.stopVpn()
               }})
+              ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
+                let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+                if(!result){
+                  promptAction.showToast({message:"rpc服务启动失败"})
+                }
+                this.routerInfos.pushPath({name:"proxys"})
+              }})
+              // ActionCard({title:"test", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
+              //   this.testVpn()
+              // }})
             }
-            ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
-              let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
-              if(!result){
-                promptAction.showToast({message:"rpc服务启动失败"})
-              }
-              this.routerInfos.pushPath({name:"proxys"})
-            }})
             ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
               this.routerInfos.pushPath({name:"configs"})
             }})

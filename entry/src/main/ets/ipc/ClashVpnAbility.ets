@@ -4,6 +4,7 @@ import { ClashVpnService } from '../entryability/ClashVpnService';
 import { ClashStubService } from './ClashStubService';
 import { ProfileViewModel } from '../entryability/ProfileViewModel';
 import logger from '../pages/logs';
+import { JSON } from '@kit.ArkTS';
 
 
 export default class ClashVpnAbility extends VpnExtensionAbility {
@@ -22,7 +23,10 @@ export default class ClashVpnAbility extends VpnExtensionAbility {
       const profile = await this.profileViewModel.getActive()
       if (profile != undefined){
         let configPath = await this.profileViewModel.getConfigPath(profile)
-        clashVpnService.StartVpn(configPath, this.context)
+        let selection = await this.profileViewModel.getSelection(profile.uuid)
+        if(selection)
+          logger.log("ClashVPN", `selection: ${selection.proxy} ${selection.selected}`);
+        await clashVpnService.StartVpn(configPath, this.context, selection)
       }else{
         logger.log("ClashVPN", `配置文件 没有加载 `);
       }

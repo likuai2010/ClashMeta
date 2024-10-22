@@ -105,7 +105,8 @@ func (g *Group[T]) Do(key string, fn func() (T, error)) (v T, err error, shared 
 		if e, ok := c.err.(*panicError); ok {
 			panic(e)
 		} else if c.err == errGoexit {
-			runtime.Goexit()
+			//runtime.Goexit()
+			panic(e)
 		}
 		return c.val, c.err, true
 	}

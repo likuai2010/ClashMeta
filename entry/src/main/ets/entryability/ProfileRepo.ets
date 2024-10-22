@@ -1,15 +1,7 @@
 import { relationalStore, ValuesBucket } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit';
 
-export  class Selection{
-  uuid: string
-  proxy: string = ""
-  selected: string = ""
 
-  constructor() {
-    this.uuid = generateUUID()
-  }
-}
 
 export function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -88,7 +80,7 @@ export class ProfileRepo{
     const predicates = new relationalStore.RdbPredicates('Profiles')
     predicates.equalTo('uuid', uuid);
     const cursor = await this.store!.query(predicates);
-    if (cursor.columnCount > 0) {
+    if (cursor.rowCount > 0) {
       cursor.goToNextRow();
       return this.getFromCursor(cursor);
     } else {

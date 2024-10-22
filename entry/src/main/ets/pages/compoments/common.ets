@@ -124,7 +124,7 @@ export struct CustomInputDialog {
   confirm: (val:string) => void = (val:string) => {
   }
   onPageShow(): void {
-    this.inputController?.setTextSelection(0, 1,{menuPolicy:MenuPolicy.SHOW})
+    this.inputController?.setTextSelection(0, 1, { menuPolicy:MenuPolicy.SHOW})
     this.inputController?.caretPosition(0)
   }
   build() {

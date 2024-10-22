@@ -4,6 +4,8 @@ import { HashMap, JSON } from '@kit.ArkTS'
 import clashProxyService from '../ipc/ClashProxyService'
 import { promptAction } from '@kit.ArkUI'
 import profileViewModel from '../entryability/ProfileViewModel'
+import { Profile } from '../entryability/ProfileRepo'
+import { Selection } from '../entryability/SelectionRepo'
 
 @Component
 struct ProxyNode {
@@ -45,7 +47,7 @@ export struct ProxysPage {
   @State  sortModel:ProxySort = ProxySort.Default
 
   @State testing: boolean = false
-  @State tabIndexes: number = 0
+
   @Builder
   ModelMenu() {
     this.buildMenu([
@@ -144,8 +146,14 @@ export struct ProxysPage {
       }).bindMenu(this.MyMenu)
     }
   }
+  scroller: Scroller = new Scroller();
+  private controller: TabsController = new TabsController();
+  @State tabIndexes: number = 0
+  @State active: number = 0
+  profile?: Profile
   @State groupNames: string[] = []
   @State groupDict: HashMap<string, ProxyGroup> = new HashMap()
+
   aboutToAppear(): void {
     this.fetchProxyGroupList()
   }
@@ -160,15 +168,26 @@ export struct ProxysPage {
     }
     this.groupDict = dict
     this.groupNames = names
+    this.profile = await profileViewModel.getActive()
+    let selection = await profileViewModel.getSelection(this.profile?.uuid)
+    if (selection){
+        this.tabIndexes = this.groupNames.indexOf(selection!.proxy)
+        const groupName = this.groupNames[this.tabIndexes];
+        const groupInfo = this.groupDict.get(groupName);
+        this.active = groupInfo.proxies.findIndex((p)=>p.name == selection!.selected)
+    }
   }
   async selectNode(i: number, g: string, node: Proxy){
     this.active = i
     let result = await clashProxyService.patchSelector(g, node.name)
-    promptAction.showToast({message: "切换节点:" + result })
+    if (this.profile){
+      await profileViewModel.updateSelection(new Selection(this.profile!.uuid, g, node.name))
+    }
+    if(!result){
+      promptAction.showToast({message: "切换节点失败"})
+    }
   }
-  scroller: Scroller = new Scroller();
-  private controller: TabsController = new TabsController();
-  @State active: number = 0
+
   build() {
     NavDestination() {
       Column() {

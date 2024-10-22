@@ -1,7 +1,8 @@
 import { vpnExtension } from '@kit.NetworkKit';
 import { common, Context } from '@kit.AbilityKit';
-import { nativeInit, nativeLoad, nativeStartTun, nativeStopTun } from 'libentry.so';
+import { nativeInit, nativeLoad, nativePatchSelector, nativeStartTun, nativeStopTun } from 'libentry.so';
 import logger from '../pages/logs';
+import { Selection } from './SelectionRepo';
 
 class Address {
   address: string;
@@ -36,7 +37,7 @@ class Config {
   }
 }
 export  class ClashVpnService{
-  noVpn:boolean = false // 模拟器开启
+  noVpn: boolean = false // 模拟器开启
   private tunIp: string = '172.19.0.1';
   running: boolean = false
   vpnConnection : vpnExtension.VpnConnection | undefined
@@ -52,7 +53,7 @@ export  class ClashVpnService{
       logger.log("ClashVPN", `初始化Clash(golang)失败`)
     }
   }
-  async StartVpn(configPath: string, context: Context): Promise<boolean> {
+  async StartVpn(configPath: string, context: Context, selection: Selection | null): Promise<boolean> {
     let config = new Config(this.tunIp, "");
     let tunFd = -1
     try {
@@ -67,13 +68,14 @@ export  class ClashVpnService{
       })
       logger.log("ClashVPN", `开启Clash服务(golang)`)
       nativeStartTun(tunFd, (fd)=>{
-        this.vpnConnection?.protect(fd).then(()=>{
-          logger.log("ClashVPN", `Protect ${fd} success`)
-        }).catch((err : Error) => {
-          logger.log("ClashVPN", `Protect ${fd} Failed ` + err.stack)
-        })
+        this.vpnConnection?.protect(fd)
       })
-
+      setTimeout(()=>{
+        // 默认节点
+        if (selection) {
+          nativePatchSelector(selection.proxy, selection.selected)
+        }
+      }, 500)
       return true;
     } catch (error) {
       logger.log("ClashVPN", `Clash启动失败 ${error.message}=> ${error.stack}` )

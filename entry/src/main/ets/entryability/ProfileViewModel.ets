@@ -1,21 +1,23 @@
 import { Profile, ProfileRepo, ProfileType } from './ProfileRepo'
 import { common } from '@kit.AbilityKit'
 import fs from '@ohos.file.fs'
-import { nativeFetchAndValid, nativeInit, nativeInstallSideloadGeoip } from 'libentry.so'
+import { nativeFetchAndValid,} from 'libentry.so'
 import { promptAction } from '@kit.ArkUI'
+import { Selection, SelectionRepo } from './SelectionRepo'
 
 export class ProfileViewModel{
-  repo:ProfileRepo = new ProfileRepo()
+  repo: ProfileRepo = new ProfileRepo()
+  selectionRepo: SelectionRepo = new SelectionRepo()
   context: common.Context | undefined
   async init(context:common.Context){
     this.context = context
     await this.repo.init(context)
-    // await nativeInit(await this.getHome(),"")
+    await this.selectionRepo.init(this.repo.store)
   }
   async  getProfileList(): Promise<Profile[]>{
     return await this.repo.queryAll()
   }
-  async  getActive(): Promise<Profile | undefined>{
+  async getActive(): Promise<Profile | undefined>{
     let profile =  await this.repo.queryAll()
     return profile.find((p) => p.active)
   }
@@ -29,11 +31,17 @@ export class ProfileViewModel{
     }
     return new Profile();
   }
-
+  async getSelection(uuid: string | null = null): Promise<Selection | null>{
+    if (uuid == null)
+      uuid = (await this.getActive())?.uuid ?? ""
+    return await this.selectionRepo.query(uuid)
+  }
   private async saveProfile(profile: Profile){
     await this.repo.addOrUpdate(profile)
   }
-
+  async  updateSelection(select: Selection){
+    await this.selectionRepo.addOrUpdate(select)
+  }
 
 
   async updateProfile(profile:Profile){

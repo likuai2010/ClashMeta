@@ -473,7 +473,8 @@ func updateIPTables(cfg *config.Config) {
 	defer func() {
 		if err != nil {
 			log.Errorln("[IPTABLES] setting iptables failed: %s", err.Error())
-			os.Exit(2)
+			//os.Exit(2)
+			panic(2)
 		}
 	}()
 

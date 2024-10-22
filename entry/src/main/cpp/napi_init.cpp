@@ -300,14 +300,14 @@ static napi_value nativeStartTun(napi_env env, napi_callback_info info)
     std::thread t([](int fd){
         OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x00000, "ClashVpn", "startRun %{public}d", fd);
         startTun(fd, "172.19.0.1/30", "172.19.0.2", "0.0.0.0", (void*)+[](void *tun_interface, int fd){
-            callbackData.fd=fd;
+            callbackData.fd = fd;
             auto it = tsfnPool.tsfnMap.find("nativeStartTun");
             if (it != tsfnPool.tsfnMap.end()){
                  napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
             }
         });
     }, tunFd);
-    t.join();
+    t.detach();
     return NULL;
 }
 
