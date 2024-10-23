@@ -126,12 +126,6 @@ struct Index {
             ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
               this.routerInfos.pushPath({name: "config-viewer", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
             }})
-            ActionLabel({title:"测试普通文本", icon:"ic_baseline_settings", click:()=>{
-              profileViewModel.testSelection()
-            }})
-            ActionLabel({title:"测试图标文本", icon:"ic_baseline_settings", click:()=>{
-              profileViewModel.testIConSelection()
-            }})
             // ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
             //   this.routerInfos.pushPath({name:"settings"})
             // }})

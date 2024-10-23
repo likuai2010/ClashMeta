@@ -21,6 +21,7 @@ export class SelectionRepo{
   }
   async init(store: relationalStore.RdbStore | undefined) {
     this.store = store
+    this.initDb()
   }
   initDb() {
     try {
