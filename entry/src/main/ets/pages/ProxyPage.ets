@@ -6,6 +6,7 @@ import { promptAction } from '@kit.ArkUI'
 import profileViewModel from '../entryability/ProfileViewModel'
 import { Profile } from '../entryability/ProfileRepo'
 import { Selection } from '../entryability/SelectionRepo'
+import logger from './logs'
 
 @Component
 struct ProxyNode {
@@ -168,23 +169,38 @@ export struct ProxysPage {
     }
     this.groupDict = dict
     this.groupNames = names
-    this.profile = await profileViewModel.getActive()
-    let selection = await profileViewModel.getSelection(this.profile?.uuid)
-    if (selection){
+    try {
+      this.profile = await profileViewModel.getActive()
+      let selection = await profileViewModel.getSelection(this.profile?.uuid)
+      if (selection){
         this.tabIndexes = this.groupNames.indexOf(selection!.proxy)
         const groupName = this.groupNames[this.tabIndexes];
         const groupInfo = this.groupDict.get(groupName);
+
         this.active = groupInfo.proxies.findIndex((p)=>p.name == selection!.selected)
+        logger.log("initNode name: ", `${selection!.proxy}  ${selection.selected}`)
+        logger.log("initNode index: ", `${this.tabIndexes}  ${this.active}`)
+        setTimeout(()=>{
+          this.controller.changeIndex(this.tabIndexes)
+        }, 100)
+      }else{
+        logger.log("initNode: ", `selection: null`)
+        promptAction.showToast({message: `selection: null`})
+      }
+    } catch (e) {
+      promptAction.showToast({message: `getSelection error: ${e}`})
     }
+
   }
   async selectNode(i: number, g: string, node: Proxy){
     this.active = i
     let result = await clashProxyService.patchSelector(g, node.name)
     if (this.profile){
+      logger.log("selectNode ${}:  ", `|${g}  ${node.name}`)
       await profileViewModel.updateSelection(new Selection(this.profile!.uuid, g, node.name))
     }
     if(!result){
-      promptAction.showToast({message: "切换节点失败"})
+      promptAction.showToast({message: `切换节点失败： ${g} ${node.name}`})
     }
   }
 

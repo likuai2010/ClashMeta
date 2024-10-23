@@ -32,7 +32,7 @@ export class Profile {
   createAt: number
   updatedAt: number
 
-  constructor(type=ProfileType.Url) {
+  constructor(type= ProfileType.Url) {
     this.uuid = generateUUID()
     this.name = "新配置"
     this.type = type // 0 url
@@ -41,11 +41,6 @@ export class Profile {
     this.createAt = new Date().getTime()
     this.updatedAt = new Date().getTime()
   }
-}
-
-
-interface GeneratedObjectLiteralInterface_1 {
-  uuid: string;
 }
 
 export class ProfileRepo{

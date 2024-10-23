@@ -22,7 +22,7 @@
         "description": "$string:EntryAbility_desc",
         "icon": "$media:layered_image",
         "label": "$string:EntryAbility_label",
-        "orientation": "auto_rotation",
+        "orientation": "auto_rotation_restricted",
         "startWindowIcon": "$media:logo",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,

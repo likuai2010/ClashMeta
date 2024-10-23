@@ -4,6 +4,7 @@ import fs from '@ohos.file.fs'
 import { nativeFetchAndValid,} from 'libentry.so'
 import { promptAction } from '@kit.ArkUI'
 import { Selection, SelectionRepo } from './SelectionRepo'
+import { fileUri } from '@kit.CoreFileKit'
 
 export class ProfileViewModel{
   repo: ProfileRepo = new ProfileRepo()
@@ -43,6 +44,16 @@ export class ProfileViewModel{
     await this.selectionRepo.addOrUpdate(select)
   }
 
+  async testSelection(){
+    await this.updateSelection(new Selection("testId", "proxy", "node"))
+    let dd = await this.getSelection("testId")
+    promptAction.showToast({message: `测试数据读写: ${JSON.stringify(dd)}`})
+  }
+  async testIConSelection(){
+    await this.updateSelection(new Selection("testId2", '🚀 节点选择', '♻️ 自动选择'))
+    let dd = await this.getSelection("testId2")
+    promptAction.showToast({message: `测试数据读写: ${JSON.stringify(dd)}`})
+  }
 
   async updateProfile(profile:Profile){
     await this.repo.addOrUpdate(profile)
@@ -67,7 +78,8 @@ export class ProfileViewModel{
   }
   async addProfile(profile:Profile): Promise<boolean>{
     const configPath = await this.getConfigPath(profile)
-    if(profile.type == ProfileType.Url) {
+    if (profile.source.startsWith("http")) {
+      profile.type = ProfileType.Url
       const result = await this.download(configPath, profile.source)
       if(result){
         await this.saveProfile(profile)
@@ -77,8 +89,19 @@ export class ProfileViewModel{
         return false
       }
     }else{
+      if (profile.source){
+        profile.type = ProfileType.File
+        await fs.copy(profile.source, fileUri.getUriFromPath(configPath +  "/config.yaml"))
+        await this.saveProfile(profile)
+        return true;
+      }
     }
     return false
+  }
+  async loadConfig(targetUri:string): Promise<string>{
+    let configPath =  this.context?.tempDir + "/config.yaml"
+
+    return configPath;
   }
 
   async download(configPath:string, url: string): Promise<boolean>{

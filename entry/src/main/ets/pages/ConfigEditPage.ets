@@ -1,4 +1,4 @@
-import { Profile } from '../entryability/ProfileRepo'
+import { Profile, ProfileType } from '../entryability/ProfileRepo'
 import { ActionInput, ActionLabel } from './compoments/common'
 import { Icon } from './compoments/icons'
 import { picker } from '@kit.CoreFileKit'
@@ -54,12 +54,13 @@ export struct ConfigEditPage {
           Text("仅接受 CLash 配置文件(包含代理/规则)")
         }
         ActionInput({title:"名称", icon: "ic_outline_label", value: this.pending.name, defaultValue:"新配置", onChange:(v)=>{
-          console.debug("testTag", v)
+            console.debug("testTag", v)
             this.pending.name = v
         }})
         ActionInput({title:"URL", icon: "ic_outline_inbox",unit:"https(s)", value: this.pending.source, defaultValue: "仅接受 http(s) 类型", onChange:(v)=>{
             console.debug("testTag", v)
             this.pending.source = v
+            this.pending.type = ProfileType.Url
         }})
         ActionInput({title:"自动更新",icon: "ic_outline_update", unit:"分钟", value: this.pending.interval == 0 ? "" : `${this.pending.interval}(分钟)`, defaultValue: "已禁用" ,onChange:(v)=>{
           console.debug("testTag", v)
@@ -77,8 +78,9 @@ export struct ConfigEditPage {
         ActionLabel({title: "浏览文件", icon: "ic_outline_folder", click:()=>{
           let filePicker =  new  picker.DocumentViewPicker(getContext(this))
           let options = new picker.DocumentSelectOptions()
-          filePicker.select(options).then((d)=>{
-            console.debug("testTag", d)
+          filePicker.select(options).then((documentSelectResult)=>{
+            this.pending.source = documentSelectResult[0];
+            this.pending.type = ProfileType.File
           })
         }})
       }.width('100%').height('100%')

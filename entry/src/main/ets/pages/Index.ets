@@ -109,11 +109,12 @@ struct Index {
                 this.stopVpn()
               }})
               ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
-                let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
-                if(!result){
-                  promptAction.showToast({message:"rpc服务启动失败"})
+                try {
+                  await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+                  this.routerInfos.pushPath({name:"proxys"})
+                } catch (e) {
+                  promptAction.showToast({message:"rpc服务启动失败: " + e})
                 }
-                this.routerInfos.pushPath({name:"proxys"})
               }})
               // ActionCard({title:"test", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
               //   this.testVpn()
@@ -125,7 +126,12 @@ struct Index {
             ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
               this.routerInfos.pushPath({name: "config-viewer", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
             }})
-
+            ActionLabel({title:"测试普通文本", icon:"ic_baseline_settings", click:()=>{
+              profileViewModel.testSelection()
+            }})
+            ActionLabel({title:"测试图标文本", icon:"ic_baseline_settings", click:()=>{
+              profileViewModel.testIConSelection()
+            }})
             // ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
             //   this.routerInfos.pushPath({name:"settings"})
             // }})

@@ -10,6 +10,9 @@ let want: Want = {
   // 包名和组件名写实际的值
   bundleName: "com.xiaobai.clash",
   abilityName: "ClashVpnAbility",
+  parameters:{
+    "ability.want.params.uiExtensionType":"sys/commonUI"
+  }
 };
 let option = new rpc.MessageOption()
 
@@ -146,17 +149,14 @@ class ClashProxyService implements  IClashManager{
     return new Promise((resolve, reject)=>{
       let connectId = context.connectServiceExtensionAbility(want, {
         onConnect: (elementName, remoteProxy) => {
-          hilog.info(0x0000, 'ClashProxyService', 'RpcClient: connected');
           this.proxy = remoteProxy;
           resolve(true)
         },
         onDisconnect: (elementName) => {
-          hilog.info(0x0000, 'ClashProxyService', 'RpcClient: onDisconnect');
-          reject('RpcClient: onDisconnect')
+          reject('RpcClient: onDisconnect' + elementName )
         },
-        onFailed: () => {
-          hilog.info(0x0000, 'ClashProxyService', 'RpcClient: onFailed');
-          reject('RpcClient: onFailed')
+        onFailed: (e) => {
+          reject('RpcClient: onFailed: code: ' + e)
         }
       });
       this.connectId = connectId

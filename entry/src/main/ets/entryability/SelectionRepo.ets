@@ -1,5 +1,6 @@
 import { relationalStore, ValuesBucket } from '@kit.ArkData'
 import { common } from '@kit.AbilityKit';
+import { promptAction } from '@kit.ArkUI';
 
 
 export  class Selection{
@@ -26,6 +27,7 @@ export class SelectionRepo{
       const SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS Selections(uuid TEXT PRIMARY KEY, proxy TEXT NOT NULL, selected TEXT NOT NULL)"
       this.store?.executeSql(SQL_CREATE_TABLE); // 创建数据表
     } catch (e) {
+      promptAction.showToast({message:""})
       console.error(e)
     }
   }
