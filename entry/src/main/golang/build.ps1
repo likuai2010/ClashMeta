@@ -36,5 +36,12 @@ if (Test-Path $outputFile) {
 } else {
     Write-Host "failed"
 }
-Copy-Item -Force "$PSScriptRoot\myapp.so" "$PSScriptRoot\..\..\..\libs\$outdir\myapp.so"
+
+# 如果拷贝目录不存在，则创建
+$libsDirectory = "$PSScriptRoot\..\..\..\libs\$outdir"
+if (-Not (Test-Path -Path $libsDirectory)) {
+    New-Item -Path $libsDirectory -ItemType Directory -Force
+    Write-Host "The target directory has been created: $libsDirectory"
+}
+Copy-Item -Force "$PSScriptRoot\myapp.so" "$libsDirectory\myapp.so"
 #Copy-Item -Force "$PSScriptRoot\dist\index.d.ts" "$PSScriptRoot\..\src\main\cpp\types\hello\index.d.ts"
