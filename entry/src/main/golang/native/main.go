@@ -18,10 +18,13 @@ import (
 	"github.com/metacubex/mihomo/log"
 )
 
-
+import (
+"os"
+)
 
 //export coreInit
 func coreInit(home, versionName C.c_string, sdkVersion C.int) {
+
 	h := C.GoString(home)
 	v := C.GoString(versionName)
 	s := int(sdkVersion)
@@ -33,11 +36,13 @@ func coreInit(home, versionName C.c_string, sdkVersion C.int) {
 
 //export coreTest
 func coreTest() C.int {
+
 	return 1
 }
 
 //export reset
 func reset() {
+
 	config.LoadDefault()
 	tunnel.ResetStatistic()
 	tunnel.CloseAllConnections()
@@ -47,6 +52,8 @@ func reset() {
 
 //export forceGc
 func forceGc() {
+    log.Infoln("[APP] os.Exit")
+    os.Exit(0)
 	go func() {
 		log.Infoln("[APP] request force GC")
 

@@ -80,16 +80,16 @@ struct Index {
   }
   scroller: Scroller = new Scroller();
 
-  // async testVpn(){
-  //   const clashVpnService = new ClashVpnService(await profileViewModel.getHome());
-  //   const profile = await profileViewModel.getActive()
-  //   if (profile != undefined){
-  //     let configPath = await profileViewModel.getConfigPath(profile)
-  //     clashVpnService.StartVpn(configPath, getContext(this))
-  //   }else{
-  //     logger.log("ClashVPN", `配置文件 没有加载 `);
-  //   }
-  // }
+  async testVpn(){
+    const clashVpnService = new ClashVpnService(await profileViewModel.getHome());
+    const profile = await profileViewModel.getActive()
+    if (profile != undefined){
+      let configPath = await profileViewModel.getConfigPath(profile)
+      clashVpnService.StartVpn(configPath, getContext(this), null)
+    }else{
+      logger.log("ClashVPN", `配置文件 没有加载 `);
+    }
+  }
 
   build() {
     Navigation(this.routerInfos) {
@@ -116,9 +116,6 @@ struct Index {
                   promptAction.showToast({message:"rpc服务启动失败: " + e})
                 }
               }})
-              // ActionCard({title:"test", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
-              //   this.testVpn()
-              // }})
             }
             ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
               this.routerInfos.pushPath({name:"configs"})

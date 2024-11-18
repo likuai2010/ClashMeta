@@ -275,17 +275,19 @@ static napi_value nativeUpdateProvider(napi_env env, napi_callback_info info)
 }
 static napi_value nativeStartTun(napi_env env, napi_callback_info info)
 {
+ 
     size_t argc = 3;
     napi_value args[3] = {nullptr};
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     
     int tunFd;
     napi_get_value_int32(env, args[0], &tunFd);
-    
+
     napi_value resourceName;
     napi_create_string_latin1(env, "nativeStartTun'", NAPI_AUTO_LENGTH, &resourceName);
     napi_threadsafe_function tsfn;
     napi_create_threadsafe_function(env, args[1], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+   
         CallbackData* cd = (CallbackData *)data;
         if (cd == nullptr)
             return ;

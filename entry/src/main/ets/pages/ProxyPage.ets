@@ -176,16 +176,12 @@ export struct ProxysPage {
         this.tabIndexes = this.groupNames.indexOf(selection!.proxy)
         const groupName = this.groupNames[this.tabIndexes];
         const groupInfo = this.groupDict.get(groupName);
-
-        this.active = groupInfo.proxies.findIndex((p)=>p.name == selection!.selected)
-        logger.log("initNode name: ", `${selection!.proxy}  ${selection.selected}`)
-        logger.log("initNode index: ", `${this.tabIndexes}  ${this.active}`)
-        setTimeout(()=>{
-          this.controller.changeIndex(this.tabIndexes)
-        }, 100)
-      }else{
-        logger.log("initNode: ", `selection: null`)
-        promptAction.showToast({message: `selection: null`})
+        if(groupInfo){
+          this.active = groupInfo.proxies.findIndex((p)=>p.name == selection!.selected)
+          setTimeout(()=>{
+            this.controller.changeIndex(this.tabIndexes)
+          }, 50)
+        }
       }
     } catch (e) {
       promptAction.showToast({message: `getSelection error: ${e}`})

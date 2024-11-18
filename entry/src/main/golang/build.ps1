@@ -16,7 +16,7 @@ $env:CGO_AR= "$TOOLCHAIN/bin/llvm-ar"
 $CGO_AR= "$TOOLCHAIN/bin/llvm-ar"
 $env:GOASM= "$TOOLCHAIN/bin/llvm-as"
 
-$env:GOOS = "android"
+$env:GOOS = "linux"
 $env:GOARCH = $arch # amd64 386 arm arm64
 $env:GOARM = "";
 $env:CGO_ENABLED = "1"
@@ -28,7 +28,7 @@ $sourceFile = "./native"
 $outputFile = "myapp.so"
 # 压缩so
 # -trimpath -ldflags="-s -w"
-go build -buildmode c-shared -tags "foss cmfa with_gvisor ohos"  -v -o $outputFile $sourceFile
+G:\git\golang_go\bin\go build -tlsmodegd -buildmode c-shared -tags "foss cmfa with_gvisor ohos"  -v -o $outputFile $sourceFile
 
 # 检查编译结果
 if (Test-Path $outputFile) {

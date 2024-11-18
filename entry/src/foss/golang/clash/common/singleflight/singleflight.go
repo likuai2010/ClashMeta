@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"runtime"
 	"runtime/debug"
 	"sync"
 )

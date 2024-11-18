@@ -1,4 +1,4 @@
-//go:build !(android && cmfa)
+//go:build !((android || ohos) && cmfa)
 
 package dns
 
