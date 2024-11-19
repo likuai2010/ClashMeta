@@ -12,6 +12,7 @@ import { ConfigViewer } from './ConfigViewer';
 import logger from '../pages/logs';
 import { promptAction } from '@kit.ArkUI';
 import { ClashVpnService } from '../entryability/ClashVpnService';
+import { rpc } from '@kit.IPCKit';
 
 let want: Want = {
   deviceId: "",
@@ -110,7 +111,6 @@ struct Index {
               }})
               ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
                 try {
-                  await clashProxyService.start(getContext(this) as common.UIAbilityContext)
                   this.routerInfos.pushPath({name:"proxys"})
                 } catch (e) {
                   promptAction.showToast({message:"rpc服务启动失败: " + e})
@@ -123,9 +123,10 @@ struct Index {
             ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
               this.routerInfos.pushPath({name: "config-viewer", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
             }})
-            // ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
-            //   this.routerInfos.pushPath({name:"settings"})
-            // }})
+            ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
+
+              //this.routerInfos.pushPath({name:"settings"})
+            }})
             // ActionLabel({title:"关于", icon:"ic_baseline_info"})
             // Text(this.message)
             //   .fontSize(50)

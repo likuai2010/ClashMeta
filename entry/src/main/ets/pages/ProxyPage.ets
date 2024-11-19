@@ -1,7 +1,7 @@
 import  { OverrideSlot, Proxy, ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel'
 import { Icon } from './compoments/icons'
 import { HashMap, JSON } from '@kit.ArkTS'
-import clashProxyService from '../ipc/ClashProxyService'
+import clashProxyService from '../rpc/SocketProxyService'
 import { promptAction } from '@kit.ArkUI'
 import profileViewModel from '../entryability/ProfileViewModel'
 import { Profile } from '../entryability/ProfileRepo'
