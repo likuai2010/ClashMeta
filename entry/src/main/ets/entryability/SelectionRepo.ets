@@ -25,7 +25,7 @@ export class SelectionRepo{
   }
   initDb() {
     try {
-      const SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS Selections(uuid TEXT PRIMARY KEY, proxy TEXT NOT NULL, selected TEXT NOT NULL)"
+      const SQL_CREATE_TABLE = "CREATE TABLE IF NOT EXISTS Selections(uuid TEXT, proxy TEXT NOT NULL, selected TEXT NOT NULL)"
       this.store?.executeSql(SQL_CREATE_TABLE); // 创建数据表
     } catch (e) {
       promptAction.showToast({message:""})
