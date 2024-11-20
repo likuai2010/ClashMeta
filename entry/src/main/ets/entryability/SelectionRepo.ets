@@ -38,22 +38,19 @@ export class SelectionRepo{
     predicates.equalTo('uuid', uuid);
     await this.store!.delete(predicates);
   }
-  async query(uuid: string | undefined): Promise<Selection | null> {
+  async deleteProxies(uuid: string, proxies: string[]) {
+    const predicates = new relationalStore.RdbPredicates('Selections')
+    predicates.equalTo('uuid', uuid);
+    predicates.in('proxy', proxies)
+    await this.store!.delete(predicates);
+  }
+
+  async query(uuid: string | undefined): Promise<Selection[]> {
     if(uuid == undefined)
-      return null
+      return []
     const predicates = new relationalStore.RdbPredicates('Selections')
     predicates.equalTo('uuid', uuid);
     const cursor = await this.store!.query(predicates);
-    if (cursor.rowCount > 0 ) {
-      cursor.goToNextRow();
-      return this.getFromCursor(cursor);
-    } else {
-      return null;
-    }
-  }
-  async queryAll(): Promise<Selection[]> {
-    const predicates = new relationalStore.RdbPredicates('Selections')
-    const cursor = await this.store!.query(predicates)
     const list: Selection[] = []
     cursor.goToNextRow()
     while (cursor.rowIndex >= 0 && cursor.rowIndex < cursor.rowCount) {
@@ -66,6 +63,7 @@ export class SelectionRepo{
   async addOrUpdate(details: Selection) {
     const predicates = new relationalStore.RdbPredicates('Selections')
     predicates.equalTo('uuid', details.uuid);
+    predicates.equalTo('proxy', details.proxy);
     const old = await this.store!.query(predicates)
     const input: ValuesBucket = {
       uuid: details.uuid,

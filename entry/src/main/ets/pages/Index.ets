@@ -86,7 +86,7 @@ struct Index {
     const profile = await profileViewModel.getActive()
     if (profile != undefined){
       let configPath = await profileViewModel.getConfigPath(profile)
-      clashVpnService.StartVpn(configPath, getContext(this), null)
+      clashVpnService.StartVpn(configPath, getContext(this), [])
     }else{
       logger.log("ClashVPN", `配置文件 没有加载 `);
     }

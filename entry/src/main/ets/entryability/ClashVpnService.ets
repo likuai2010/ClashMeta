@@ -53,7 +53,7 @@ export  class ClashVpnService{
       logger.log("ClashVPN", `初始化Clash(golang)失败`)
     }
   }
-  async StartVpn(configPath: string, context: Context, selection: Selection | null): Promise<boolean> {
+  async StartVpn(configPath: string, context: Context, selection: Selection[]): Promise<boolean> {
     let config = new Config(this.tunIp, "");
     let tunFd = -1
     try {
@@ -73,7 +73,9 @@ export  class ClashVpnService{
       setTimeout(()=>{
         // 默认节点
         if (selection) {
-          nativePatchSelector(selection.proxy, selection.selected)
+          selection.forEach((s)=>{
+            nativePatchSelector(s.proxy, s.selected)
+          })
         }
       }, 500)
       return true;
