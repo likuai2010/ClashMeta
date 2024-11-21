@@ -80,17 +80,17 @@ export class  SocketProxyService implements IClashManager{
     let json = await this.sendMessageRequest(ClashRpcType.vpnStarted, [])
     return json as boolean
   }
-
+  socketPool: Map<number, socket.TCPSocket> = new Map()
   async sendMessageRequest(
     method: number,
     params: (string| number | boolean) [] = []
   ): Promise<string| number | boolean | undefined>{
-    let tcp: socket.TCPSocket = socket.constructTCPSocketInstance();
     return new Promise(async (resolve, reject)=>{
-      tcp.on('message', (value: socket.SocketMessageInfo) => {
+      let tcp: socket.TCPSocket = socket.constructTCPSocketInstance();
+      tcp.on('message', async (value: socket.SocketMessageInfo) => {
         let text = new util.TextDecoder()
         let json = JSON.parse(text.decodeToString(new Uint8Array(value.message))) as RpcResult
-        console.log("SocketProxyService callack", json.result)
+        console.log("SocketProxyService callack", await tcp.getSocketFd())
         resolve(json.result)
         if(json.result != undefined){
           tcp.close();

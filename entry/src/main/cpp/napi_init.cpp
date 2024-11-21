@@ -255,7 +255,7 @@ static napi_value nativeSubscribeLogcat(napi_env env, napi_callback_info info)
             napi_get_undefined(env, &params[0]);
         }
         napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
-        }, &tsfn);
+    }, &tsfn);
     logcatData.content = (char *)malloc(512);
     tsfnPool.tsfnMap["nativeSubscribeLogcat"] = tsfn;
     std::thread t([](){
@@ -281,10 +281,10 @@ static napi_value nativeUpdateProvider(napi_env env, napi_callback_info info)
     char* type = get_string_from_js(env, args[0]);
     char* name = get_string_from_js(env, args[1]);
     
-     napi_value resourceName;
+    napi_value resourceName;
     napi_create_string_latin1(env, "nativeUpdateProvider", NAPI_AUTO_LENGTH, &resourceName);
     napi_threadsafe_function tsfn;
-    napi_create_threadsafe_function(env, args[0], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+    napi_create_threadsafe_function(env, args[2], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
         napi_value params[1];
         napi_call_function(env, nullptr, js_callback, 0, params, nullptr);
     }, &tsfn);

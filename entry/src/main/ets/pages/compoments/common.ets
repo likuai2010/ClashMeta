@@ -28,7 +28,9 @@ export struct ActionCard {
   build() {
     Row(){
       if (this.loading) {
-        LoadingProgress().size({width:32,height:32}).padding(10)
+        Row(){
+          LoadingProgress().size({width:32,height:32})
+        }.padding(10)
       } else {
         Icon({icon:$r(`app.media.${this.icon}`), iconColor:this.fColor()})
       }

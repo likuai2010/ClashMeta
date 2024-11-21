@@ -208,7 +208,7 @@ export struct ProxysPage {
                   ForEach( Array.from(this.groupDict.get(g)?.proxies ?? []), (item: Proxy, i)=>{
                     GridCol({ span: 1 }) {
                       if ( this.groupDict.get(g)?.type != ProxyType.Selector){
-                        ProxyNode({name: item.title, type: item.subtitle, selected: this.groupDict.get(g)?.now == item.name})
+                        ProxyNode({name: item.title, type: item.subtitle, selected: this.groupDict.get(g)?.now == item.name, delay: item.delay + ""})
                       }else{
                         ProxyNode({name: item.title, type: item.subtitle, selected: this.selectionsDict.get(g) == item.name, delay: item.delay + ""}).onClick(()=>{
                           this.selectNode(i, g, item)
@@ -217,7 +217,7 @@ export struct ProxysPage {
                     }
                   }, (d: Proxy)=> JSON.stringify(d))
                 }
-              }.padding(5).height("100%").backgroundColor("#ffececec")
+              }.align(Alignment.Top).padding(5).height("100%").backgroundColor("#ffececec")
             }
             .tabBar(g)
           }, (i:string) => i)

@@ -12,7 +12,7 @@ import logger from '../pages/logs';
 import { promptAction } from '@kit.ArkUI';
 import { ClashVpnService } from '../entryability/ClashVpnService';
 import { ProviderPage } from './ProviderPage';
-import SocketProxyService from '../rpc/SocketProxyService';
+import { ConfigViewer } from './ConfigViewer';
 
 let want: Want = {
   deviceId: "",
@@ -21,7 +21,7 @@ let want: Want = {
 };
 
 @Builder
-function PageRouter(name: string) {
+function PageRouter(name: string, params:string) {
   if (name === "proxys") {
     ProxysPage()
   } else if (name === "settings") {
@@ -34,6 +34,8 @@ function PageRouter(name: string) {
     ConfigsPage()
   }else if (name === "config-edit") {
     ConfigEditPage()
+  }else if (name === "config-viewer") {
+    ConfigViewer({configPath: params})
   } else if (name === "LogsPage") {
     LogsPage()
   } else if (name === "ProviderPage") {
