@@ -109,7 +109,7 @@ func InitGeoIP() error {
 	}
 
 	if _, err := os.Stat(C.Path.MMDB()); os.IsNotExist(err) {
-		log.Infoln("Can't find MMDB, start download")
+		log.Infoln("Can't find MMDB, start download: "+ C.Path.MMDB())
 		if err := mmdb.DownloadMMDB(C.Path.MMDB()); err != nil {
 			return fmt.Errorf("can't download MMDB: %s", err.Error())
 		}

@@ -1,6 +1,6 @@
-import  { OverrideSlot, Proxy, ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel'
+import  { OverrideSlot, Proxy, ProxyGroup, ProxySort, ProxyType, TunnelState } from '../entryability/ClashViewModel'
 import { Icon } from './compoments/icons'
-import { HashMap, JSON } from '@kit.ArkTS'
+import {  JSON } from '@kit.ArkTS'
 import clashProxyService from '../rpc/SocketProxyService'
 import { promptAction } from '@kit.ArkUI'
 import profileViewModel from '../entryability/ProfileViewModel'
@@ -34,45 +34,12 @@ interface MenuInfo{
 }
 
 @Component
-export struct ProxysPage1 {
-  @State message: Map<number, string> = new Map([[0, "a"], [1, "b"], [3, "c"]]);
-
-  build() {
-    NavDestination() {
-      Row() {
-        Column() {
-          ForEach(Array.from(this.message.entries()), (item: [number, string]) => {
-            Text(`${item[0]}`).fontSize(30)
-            Text(`${item[1]}`).fontSize(30)
-            Divider()
-          })
-          Button('init map').onClick(() => {
-            this.message = new Map([[0, "a"], [1, "b"], [3, "c"]]);
-          })
-          Button('set new one').onClick(() => {
-            this.message.set(4, "d");
-          })
-          Button('clear').onClick(() => {
-            this.message.clear();
-          })
-          Button('replace the first one').onClick(() => {
-            this.message.set(0, "aa");
-          })
-          Button('delete the first one').onClick(() => {
-            this.message.delete(0);
-          })
-        }
-        .width('100%')
-      }
-      .height('100%')
-    }
-  }
-}
-@Component
 export struct ProxysPage {
   replay: NavigationMenuItem = {'value': "", 'icon': "resources/base/media/ic_baseline_flash_on.svg", 'action': ()=> {}}
   more: NavigationMenuItem = {'value': "", 'icon': "resources/base/media/ic_baseline_more_vert.svg", 'action': ()=> {}}
   proxy: string[] = []
+  @StorageLink('lastGroupName') lastGroupName: string = ""
+
   @Builder
   Radio() {
     Radio({value:"", group:""})
@@ -189,18 +156,23 @@ export struct ProxysPage {
   @State groupNames: string[] = []
   @State groupDict: Map<string, ProxyGroup> = new Map()
 
-  aboutToAppear(): void {
-    this.fetchProxyGroupList()
+  async  aboutToAppear(): Promise<void> {
+    await this.fetchProxyGroupList()
+    let tabIndexes = this.groupNames.indexOf(this.lastGroupName)
+    setTimeout(()=>{
+      this.controller.changeIndex(tabIndexes)
+    }, 50)
   }
   async fetchProxyGroupList(){
     this.proxyModel = (await clashProxyService.queryOverride(OverrideSlot.Session)).mode || TunnelState.None
     let names = await clashProxyService.queryProxyGroupNames(false)
     console.debug("fetchProxyGroupList ", names,  this.proxyModel)
-    this.groupDict =  new Map()
+    let groupDict:Map<string, ProxyGroup> = new Map()
     for (let n of names){
       const proxyGroup = await clashProxyService.queryProxyGroup(n, this.sortModel)
-      this.groupDict.set(n, proxyGroup)
+      groupDict.set(n, proxyGroup)
     }
+    this.groupDict = groupDict
     this.groupNames = Array.from(this.groupDict.keys())
     try {
       this.profile = await profileViewModel.getActive()
@@ -209,16 +181,6 @@ export struct ProxysPage {
       selections.forEach((s)=>{
         this.selectionsDict.set(s.proxy, s.selected)
       })
-      // if(selections[0]){
-      //   setTimeout(()=>{
-      //     this.controller.changeIndex(this.tabIndexes)
-      //   }, 50)
-      // }
-      // const groupName = this.groupNames[this.tabIndexes];
-      // const groupInfo = this.groupDict.get(groupName);
-      // if(groupInfo){
-      //   setTimeout(()=>{}, 50)
-      // }
     } catch (e) {
       promptAction.showToast({message: `getSelection error: ${e}`})
     }
@@ -227,7 +189,7 @@ export struct ProxysPage {
   async selectNode(i: number, g: string, node: Proxy){
     this.selectionsDict.set(g, node.name)
     let result = await clashProxyService.patchSelector(g, node.name)
-    if (this.profile){
+    if (this.profile && result){
       logger.log("selectNode ${}:  ", `|${g}  ${node.name}`)
       await profileViewModel.updateSelection(new Selection(this.profile!.uuid, g, node.name))
     }
@@ -235,21 +197,23 @@ export struct ProxysPage {
       promptAction.showToast({message: `切换节点失败： ${g} ${node.name}`})
     }
   }
-
   build() {
     NavDestination() {
       Column() {
         Tabs({ barPosition: BarPosition.Start, controller: this.controller }) {
-          ForEach(Array.from(this.groupDict.keys()), (g:string)=>{
+          ForEach(Array.from(this.groupNames), (g:string)=>{
             TabContent() {
               Scroll(this.scroller) {
                 GridRow({ columns: this.layoutModel, gutter: 5 }) {
-
                   ForEach( Array.from(this.groupDict.get(g)?.proxies ?? []), (item: Proxy, i)=>{
                     GridCol({ span: 1 }) {
-                      ProxyNode({name: item.title, type: item.subtitle, selected: this.selectionsDict.get(g) == item.name, delay: item.delay + ""}).onClick(()=>{
-                        this.selectNode(i, g, item)
-                      })
+                      if ( this.groupDict.get(g)?.type != ProxyType.Selector){
+                        ProxyNode({name: item.title, type: item.subtitle, selected: i == 0})
+                      }else{
+                        ProxyNode({name: item.title, type: item.subtitle, selected: this.selectionsDict.get(g) == item.name, delay: item.delay + ""}).onClick(()=>{
+                          this.selectNode(i, g, item)
+                        })
+                      }
                     }
                   }, (d: Proxy)=> JSON.stringify(d))
                 }
@@ -259,6 +223,7 @@ export struct ProxysPage {
           }, (i:string) => i)
         }.barMode(BarMode.Scrollable).onChange((index)=>{
           this.tabIndexes = index
+          this.lastGroupName = this.groupNames[index]
         })
       }.width('100%')
     }.menus(this.MoreMenu(this.testing)).title("代理")

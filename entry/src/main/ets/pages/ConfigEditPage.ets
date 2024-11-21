@@ -3,10 +3,11 @@ import { ActionInput, ActionLabel } from './compoments/common'
 import { Icon } from './compoments/icons'
 import { picker } from '@kit.CoreFileKit'
 
-import profileViewModel from '../entryability/ProfileViewModel'
+import profileViewModel, { FetchStatus } from '../entryability/ProfileViewModel'
 import { JSON } from '@kit.ArkTS'
 import { promptAction } from '@kit.ArkUI'
-
+import { emitter } from '@kit.BasicServicesKit'
+const fetchStatusChange = 11111
 @Component
 export struct ConfigEditPage {
   @Consume('router') routerInfos: NavPathStack
@@ -22,7 +23,7 @@ export struct ConfigEditPage {
     }
   }
   dialogController?: CustomDialogController =  new CustomDialogController({
-    builder: Loading({ title: "添加配置", text: "下载配置中" }),
+    builder: Loading({ title: "添加配置", text: "下载配置中"}),
     autoCancel: false,
     alignment: DialogAlignment.Center,
     customStyle: true
@@ -30,7 +31,9 @@ export struct ConfigEditPage {
   async save(){
     try {
       this.dialogController?.open()
-      const  result = await profileViewModel.addProfile(this.pending)
+      const result = await profileViewModel.addProfile(this.pending, (status)=>{
+        emitter.emit({eventId:fetchStatusChange},{data:status})
+      })
       this.dialogController?.close()
       if(result)
         this.routerInfos.pop(true)
@@ -38,7 +41,6 @@ export struct ConfigEditPage {
       this.dialogController?.close()
       promptAction.showToast({message: "保存失败:" + e.message})
     }
-
 
   }
   async  aboutToAppear(): Promise<void> {
@@ -76,7 +78,7 @@ export struct ConfigEditPage {
           }
         } })
         ActionLabel({title: "浏览文件", icon: "ic_outline_folder", click:()=>{
-          let filePicker =  new  picker.DocumentViewPicker(getContext(this))
+          let filePicker = new picker.DocumentViewPicker(getContext(this))
           let options = new picker.DocumentSelectOptions()
           filePicker.select(options).then((documentSelectResult)=>{
             this.pending.source = documentSelectResult[0];
@@ -134,7 +136,7 @@ export  struct ConfigsPage {
         ForEach(this.configList, (config: Profile)=>{
           ConfigItem({profile:config, active: this.activeId == config.uuid, onDelete: ()=>{
             this.deleteProfile(config.uuid)
-          }, onCheck:()=>{
+          }, onCheck: async ()=>{
             this.activeId = config.uuid
             profileViewModel.activeProfile(config)
           }})
@@ -149,15 +151,29 @@ export  struct ConfigsPage {
 export struct Loading {
   title?: string | Resource
   text: string | Resource = ""
+  @State fetchStatus: FetchStatus = {} as FetchStatus
   controller: CustomDialogController
-
+  aboutToAppear(): void {
+    emitter.on({
+      eventId: fetchStatusChange,
+    }, (eventData)=>{
+      if (eventData.data)
+        this.fetchStatus = eventData.data as FetchStatus
+    })
+  }
   build() {
     Column(){
       Text(this.title).fontSize(18)
       Row(){
         LoadingProgress().height(100).width(80)
-        Text(this.text).maxLines(2).height(100).textOverflow({overflow: TextOverflow.Ellipsis}).layoutWeight(1)
-      }
+        Column(){
+          Text(this.text).maxLines(2).textOverflow({overflow: TextOverflow.Ellipsis})
+          if(this.fetchStatus?.action){
+            Text(`(${this.fetchStatus.progress}/${this.fetchStatus.max}):${this.fetchStatus.args[0]}`)
+          }
+        }.layoutWeight(1)
+      }.height(100)
+
     }.padding(20)
     .alignItems(HorizontalAlign.Start).backgroundColor(Color.White).borderRadius(10)
     .width("333vp")
@@ -198,7 +214,7 @@ struct ConfigItem {
       Radio({
         value: "",
         group: ''
-      }).checked(this.active).onChange(()=>{
+      }).checked(this.active).onClick(()=>{
         if(this.onCheck){
           this.onCheck()
         }

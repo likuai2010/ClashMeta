@@ -23,9 +23,9 @@ export struct ConfigViewer {
   }
   build() {
     NavDestination() {
-      TextArea({text:this.content}).onChange((e)=>{
-        this.content = e
-      }).width('100%').height('100%')
+      Scroll(){
+        Text(this.content)
+      }.width('100%').height('100%')
     }.title("config.yaml").backgroundColor(Color.White)
   }
 }

@@ -116,18 +116,20 @@ static napi_value nativeFetchAndValid(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     char* path = get_string_from_js(env, args[0]);
     char* url = get_string_from_js(env, args[1]);
-    
+    bool force = false;
+    napi_get_value_bool(env, args[1],  &force);
     napi_value resourceName;
     napi_create_string_latin1(env, "nativeFetchAndValid'", NAPI_AUTO_LENGTH, &resourceName);
     napi_threadsafe_function tsfn;
     napi_create_threadsafe_function(env, args[3], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
-       CallbackData* cd = (CallbackData *)data;
+       CallbackData* cd = static_cast<CallbackData *>(data);
         if (cd == nullptr)
             return ;
         napi_value params[2];
         napi_create_string_utf8(env, cd->type, NAPI_AUTO_LENGTH, &params[0]);
         if(cd->content != NULL){
-            napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[1]);
+            napi_create_string_utf8(env, cd->content, NAPI_AUTO_LENGTH, &params[1]);
+            
         } else {
             napi_get_undefined(env, &params[1]);
         }
@@ -139,19 +141,26 @@ static napi_value nativeFetchAndValid(napi_env env, napi_callback_info info)
     //"https://yc.wenjiushuobuzhidao.top/44879/c?auth=69e2ba977809632e322264183e41547d&v=t"
     // storage/Users/currentUser/Download/pending
     OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s %{public}s" ,path, url);
-    std::thread t([](char *path, char * url, bool  force){
-        fetchAndValid((void *)+[](char *completable, char *exception) {
-                OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s" , completable);
-                OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s" , exception);
+    std::thread t([](char * path, char * url, bool force){
+         fetchAndValid((void *)+[](char *completable, char *exception) {
                 callbackData.type = completable;
-                callbackData.content = exception;
+                if(exception != NULL){
+                    size_t len = strlen(exception) + 1;
+                    char *result = (char *)malloc(len);
+                    strcat(result, exception);
+                    callbackData.content = result;
+                }else{
+                    callbackData.content = "";
+                }
                 auto it = tsfnPool.tsfnMap.find("nativeFetchAndValid");
                 if (it != tsfnPool.tsfnMap.end()){
                     napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
                 }
         }, path, url, force);
-    }, path, url, true);
+    }, path, url, force);
     t.join();
+    free(path);
+    free(url);
     return NULL;
 }
 
@@ -167,7 +176,7 @@ static napi_value nativeLoad(napi_env env, napi_callback_info info)
     napi_create_string_latin1(env, "nativeLoad'", NAPI_AUTO_LENGTH, &resourceName);
     napi_threadsafe_function tsfn;
     napi_create_threadsafe_function(env, args[1], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
-       CallbackData* cd = (CallbackData *)data;
+       CallbackData* cd = static_cast<CallbackData *>(data);
         if (cd == nullptr)
             return ;
         napi_value params[1];
