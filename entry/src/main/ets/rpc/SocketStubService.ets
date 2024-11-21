@@ -17,6 +17,7 @@ import {
   nativeQueryProviders,
   nativeQueryTrafficTotal, nativeQueryTunnelState,
   nativeReadOverride,
+  nativeSubscribeLogcat,
   nativeUpdateProvider,
   nativeWriteOverride} from 'libentry.so';
 
@@ -40,12 +41,17 @@ export class  SocketStubService{
     let code = request.method
     let params = request.params
     console.log("SocketStubService request", JSON.stringify(request))
-    let result = await this.onRemoteMessage(code, params)
-    let rpcResult = {
-      result: result
-    } as RpcResult
-    console.log("SocketStubService result", result)
-    this.sendClient(client, json.stringify(rpcResult))
+    if(code != ClashRpcType.setLogObserver){
+      let result = await this.onRemoteMessage(code, params)
+      console.log("SocketStubService result", result)
+      this.sendClient(client, json.stringify({ result: result}))
+    } else {
+      // 订阅日志，需要持续输出
+      nativeSubscribeLogcat((value)=>{
+        this.sendClient(client, value)
+      })
+    }
+
   }
   onRemoteMessage(code: number, data: (string | number| boolean)[]): Promise<string | number | boolean> {
     // 根据code处理客户端的请求
@@ -106,18 +112,15 @@ export class  SocketStubService{
           break;
         }
         case ClashRpcType.setLogObserver:{
-          // data.readParcelable()
           // reply.writeString(set(data.readString(), data.readString()))
           resolve(true)
           break;
         }
         case ClashRpcType.queryConfiguration:{
-          // data.readParcelable()
           resolve(nativeQueryConfiguration())
           break;
         }
         case ClashRpcType.load:{
-
           nativeLoad(data[0] as string, (e)=>{
             resolve(e)
           })

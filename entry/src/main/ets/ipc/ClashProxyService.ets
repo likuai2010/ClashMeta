@@ -1,9 +1,8 @@
 import { common, Want } from '@kit.AbilityKit';
 import { rpc } from '@kit.IPCKit';
-import { hilog } from '@kit.PerformanceAnalysisKit';
-import { ProxySort, OverrideSlot, ConfigurationOverride, TunnelState,
+import { ProxySort, OverrideSlot,ConfigurationOverride, TunnelState,
   ProxyGroup } from '../entryability/ClashViewModel';
-import { ClashRpcType, IClashManager, ProviderList, ProviderType } from './IClashManager';
+import { ClashRpcType, IClashManager, Provider, ProviderType } from './IClashManager';
 import { JSON } from '@kit.ArkTS';
 
 let want: Want = {
@@ -17,6 +16,9 @@ let want: Want = {
 let option = new rpc.MessageOption()
 
 class ClashProxyService implements  IClashManager{
+  setLogObserver(observer: (string: string) => void): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
   async load(path: string): Promise<void> {
      await this.sendMessageRequest(ClashRpcType.load, (data)=>{
       data.writeString(path)
@@ -66,7 +68,7 @@ class ClashProxyService implements  IClashManager{
     return result as string
   }
 
-  queryProviders(): Promise<ProviderList> {
+  queryProviders(): Promise<Provider[]> {
     throw new Error('Method not implemented.');
   }
 

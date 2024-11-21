@@ -8,11 +8,11 @@ import { ProxysPage } from './ProxyPage';
 import profileViewModel, { ProfileViewModel } from '../entryability/ProfileViewModel';
 import clashProxyService from '../ipc/ClashProxyService';
 import { Profile } from '../entryability/ProfileRepo';
-import { ConfigViewer } from './ConfigViewer';
+import { LogsPage } from './LogsPage';
 import logger from '../pages/logs';
 import { promptAction } from '@kit.ArkUI';
 import { ClashVpnService } from '../entryability/ClashVpnService';
-import { rpc } from '@kit.IPCKit';
+import { ProviderPage } from './ProviderPage';
 
 let want: Want = {
   deviceId: "",
@@ -34,8 +34,10 @@ function PageRouter(name: string) {
     ConfigsPage()
   }else if (name === "config-edit") {
     ConfigEditPage()
-  } else if (name === "config-viewer") {
-    ConfigViewer()
+  } else if (name === "LogsPage") {
+    LogsPage()
+  } else if (name === "ProviderPage") {
+    ProviderPage()
   }
 }
 
@@ -116,16 +118,21 @@ struct Index {
                   promptAction.showToast({message:"rpc服务启动失败: " + e})
                 }
               }})
+
             }
             ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
               this.routerInfos.pushPath({name:"configs"})
             }})
-            ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
-              this.routerInfos.pushPath({name: "config-viewer", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
-            }})
+            if(this.running){
+              ActionLabel({title:"外部资源", icon:"ic_baseline_extension", click:()=>{
+                this.routerInfos.pushPath({name:"ProviderPage"})
+              }})
+              ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
+                this.routerInfos.pushPath({name: "LogsPage", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
+              }})
+            }
             ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
-
-              //this.routerInfos.pushPath({name:"settings"})
+              this.routerInfos.pushPath({ name: "settings" })
             }})
             // ActionLabel({title:"关于", icon:"ic_baseline_info"})
             // Text(this.message)
