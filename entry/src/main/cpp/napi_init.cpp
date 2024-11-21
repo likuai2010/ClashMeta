@@ -127,9 +127,8 @@ static napi_value nativeFetchAndValid(napi_env env, napi_callback_info info)
             return ;
         napi_value params[2];
         napi_create_string_utf8(env, cd->type, NAPI_AUTO_LENGTH, &params[0]);
-        if(cd->content != NULL){
+        if (cd->content != NULL){
             napi_create_string_utf8(env, cd->content, NAPI_AUTO_LENGTH, &params[1]);
-            
         } else {
             napi_get_undefined(env, &params[1]);
         }
@@ -137,17 +136,15 @@ static napi_value nativeFetchAndValid(napi_env env, napi_callback_info info)
         }, &tsfn);
     tsfnPool.tsfnMap["nativeFetchAndValid"] = tsfn;
    
-    
+    callbackData.content = (char *)malloc(512);
     // storage/Users/currentUser/Download/pending
     OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s %{public}s" ,path, url);
     std::thread t([](char * path, char * url, bool force){
          fetchAndValid((void *)+[](char *completable, char *exception) {
                 callbackData.type = completable;
-                if(exception != NULL){
-                    size_t len = strlen(exception) + 1;
-                    char *result = (char *)malloc(len);
-                    strcat(result, exception);
-                    callbackData.content = result;
+                if (exception != NULL){
+                    callbackData.content[0] = '\0';
+                    strcat(callbackData.content, exception);
                 }else{
                     callbackData.content = "";
                 }
@@ -210,9 +207,11 @@ static napi_value nativeHealthCheck(napi_env env, napi_callback_info info)
     napi_threadsafe_function tsfn;
     napi_create_threadsafe_function(env, args[1], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
         CallbackData* cd = (CallbackData *)data;
+       
         if (cd == nullptr)
             return ;
         napi_value params[1];
+        
         if (cd->content != NULL){
             napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[0]);
         } else {
@@ -223,7 +222,8 @@ static napi_value nativeHealthCheck(napi_env env, napi_callback_info info)
     tsfnPool.tsfnMap["nativeHealthCheck"] = tsfn;
     std::thread t([](char* name){
          healthCheck((void *)+[](char* completable, char* exception){ 
-            callbackData.content = exception;
+          
+             callbackData.content = exception;
             auto it = tsfnPool.tsfnMap.find("nativeHealthCheck");
             if (it != tsfnPool.tsfnMap.end()){
                 napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
@@ -234,6 +234,8 @@ static napi_value nativeHealthCheck(napi_env env, napi_callback_info info)
     free(name);
     return NULL;
 }
+
+static CallbackData logcatData;
 static napi_value nativeSubscribeLogcat(napi_env env, napi_callback_info info)
 {
     size_t argc = 1;
@@ -248,25 +250,29 @@ static napi_value nativeSubscribeLogcat(napi_env env, napi_callback_info info)
             return ;
         napi_value params[1];
         if(cd->content != NULL){
-            napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[0]);
-        } else {
-           napi_get_undefined(env, &params[0]);
+            napi_create_string_utf8(env, cd->content, NAPI_AUTO_LENGTH, &params[0]);
+         } else {
+            napi_get_undefined(env, &params[0]);
         }
         napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
         }, &tsfn);
+    logcatData.content = (char *)malloc(512);
     tsfnPool.tsfnMap["nativeSubscribeLogcat"] = tsfn;
     std::thread t([](){
         subscribeLogcat((void *)+[](void *logcat_interface, char *payload){ 
-            callbackData.content = payload;
+            logcatData.content[0] = '\0';
+            strcat(logcatData.content, payload);
             auto it = tsfnPool.tsfnMap.find("nativeSubscribeLogcat");
             if (it != tsfnPool.tsfnMap.end()){
-                napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+                napi_call_threadsafe_function(it->second, &logcatData, napi_tsfn_blocking);
             }
         });
     });
     t.join();
     return NULL;
 }
+
+
 static napi_value nativeUpdateProvider(napi_env env, napi_callback_info info)
 {
     size_t argc = 3;
