@@ -138,7 +138,6 @@ static napi_value nativeFetchAndValid(napi_env env, napi_callback_info info)
     tsfnPool.tsfnMap["nativeFetchAndValid"] = tsfn;
    
     
-    //"https://yc.wenjiushuobuzhidao.top/44879/c?auth=69e2ba977809632e322264183e41547d&v=t"
     // storage/Users/currentUser/Download/pending
     OH_LOG_Print(LOG_APP, LOG_DEBUG, 0x0000, "ClashMeta", "fetchAndValid %{public}s %{public}s" ,path, url);
     std::thread t([](char * path, char * url, bool force){
@@ -180,10 +179,10 @@ static napi_value nativeLoad(napi_env env, napi_callback_info info)
         if (cd == nullptr)
             return ;
         napi_value params[1];
-        if(cd->content != NULL){
+        if (cd->content != NULL){
             napi_create_string_utf8(env, cd->content, strlen(cd->content), &params[0]);
-        }else{
-           napi_get_undefined(env, &params[0]);
+        } else {
+            napi_get_undefined(env, &params[0]);
         }
         napi_call_function(env, nullptr, js_callback, 1, params, nullptr);
         }, &tsfn);

@@ -1,8 +1,7 @@
 import { socket } from '@kit.NetworkKit';
-import { BusinessError } from '@kit.BasicServicesKit';
-import { CommonConstants, RpcResult } from './RpcRequest';
+import {  RpcResult } from './RpcRequest';
 import { JSON, util } from '@kit.ArkTS';
-import { ClashRpcType, IClashManager, ProviderList, ProviderType } from '../ipc/IClashManager';
+import { ClashRpcType, IClashManager, Provider, ProviderType } from '../ipc/IClashManager';
 import { ConfigurationOverride,
   OverrideSlot,
   ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
@@ -10,10 +9,12 @@ import { common } from '@kit.AbilityKit';
 
 
 export class  SocketProxyService implements IClashManager{
-
   context?: common.Context
-  init(context: common.Context){
+  init(context: common.Context) {
     this.context = context
+  }
+  async setLogObserver(observer: (message:string) => void): Promise<()=>void> {
+    return this.callbackRequest(ClashRpcType.setLogObserver, [], observer)
   }
   async load(path: string): Promise<void> {
     await this.sendMessageRequest(ClashRpcType.load, [path])
@@ -44,8 +45,9 @@ export class  SocketProxyService implements IClashManager{
     return result as string
   }
 
-  queryProviders(): Promise<ProviderList> {
-    throw new Error('Method not implemented.');
+  async queryProviders(): Promise<Provider[]> {
+    let result = await this.sendMessageRequest(ClashRpcType.queryProviders)
+    return JSON.parse(result as string) as Provider[]
   }
 
   async patchSelector(group: string, name: string): Promise<boolean> {
@@ -57,8 +59,9 @@ export class  SocketProxyService implements IClashManager{
     await this.sendMessageRequest(ClashRpcType.healthCheck, [group])
   }
 
-  updateProvider(type: ProviderType, name: string): Promise<void> {
-    throw new Error('Method not implemented.');
+  async updateProvider(type: ProviderType, name: string): Promise<void> {
+    await this.sendMessageRequest(ClashRpcType.updateProvider,[type, name])
+    return
   }
 
   async queryOverride(slot: OverrideSlot): Promise<ConfigurationOverride> {
@@ -74,6 +77,7 @@ export class  SocketProxyService implements IClashManager{
   async clearOverride(slot: OverrideSlot): Promise<void> {
     await this.sendMessageRequest(ClashRpcType.clearOverride, [slot])
   }
+
   async sendMessageRequest(
     method: number,
     params: (string| number | boolean) [] = []
@@ -90,18 +94,41 @@ export class  SocketProxyService implements IClashManager{
       })
       client.on("error", ()=>{
         console.log("socketService proxy error" )
+        reject("失败")
       })
-      client.on('connect', () => {
-        console.log("socketService proxy error" )
-      });
-      client.on('close', () => {
-        console.log("socketService proxy error" )
-      });
       const socketPath = this.context?.filesDir + '/ipc_socket'
       client.connect({address: { address: socketPath }, timeout:3000}).then(()=>{
         client.send({ data: JSON.stringify({method, params}) });
       }).catch((e:Error)=>{
         console.log("socketService error", e)
+        reject(e)
+      });
+    })
+  }
+
+  async callbackRequest(
+    method: number,
+    params: (string| number | boolean) [] = [],
+    callBack:(message:string)=>void
+  ): Promise<()=>void>{
+    return new Promise(async (resolve, reject)=>{
+      let tcp: socket.LocalSocket = socket.constructLocalSocketInstance();
+      tcp.on('message', (value: socket.LocalSocketMessageInfo) => {
+        let text = new util.TextDecoder()
+        callBack(text.decodeToString(new Uint8Array(value.message)))
+      })
+      tcp.on('error', () => {
+        reject("失败")
+      });
+      const socketPath = this.context?.filesDir + '/ipc_socket'
+      tcp.connect({address: { address: socketPath }, timeout:3000}).then(()=>{
+        tcp.send({ data: JSON.stringify({method, params}) });
+        resolve(()=>{
+          tcp.close()
+        })
+      }).catch((e:Error)=>{
+        console.log("socketService error", e)
+        reject(e)
       });
     })
   }

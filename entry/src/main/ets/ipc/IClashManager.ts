@@ -1,11 +1,9 @@
 import {
   ConfigurationOverride,
   OverrideSlot, ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
+import { socket } from '@kit.NetworkKit';
 
-export class ProviderList{
-  data: Provider[]
-}
-interface Provider {
+export interface Provider {
   name: string;
   type: ProviderType;
   vehicleType: VehicleType;
@@ -42,8 +40,7 @@ export interface IClashManager {
   queryProxyGroupNames(excludeNotSelectable: boolean): Promise<string[]>;
   queryProxyGroup(name: string, proxySort: ProxySort): Promise<ProxyGroup>;
   queryConfiguration(): Promise<string>;
-  queryProviders(): Promise<ProviderList>;
-
+  queryProviders(): Promise<Provider[]>;
   patchSelector(group: string, name: string): Promise<boolean>;
 
   healthCheck(group: string): Promise<void>;
@@ -53,5 +50,6 @@ export interface IClashManager {
   patchOverride(slot: OverrideSlot, configuration: ConfigurationOverride): Promise<void>;
   clearOverride(slot: OverrideSlot): Promise<void>;
   load(path: string): Promise<void>;
-  // setLogObserver(observer: ILogObserver | null): Promise<void>;
+
+  setLogObserver(observer: (string:string) => void): Promise<()=> void>;
 }
