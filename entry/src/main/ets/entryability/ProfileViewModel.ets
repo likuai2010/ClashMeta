@@ -1,11 +1,18 @@
 import { Profile, ProfileRepo, ProfileType } from './ProfileRepo'
 import { common } from '@kit.AbilityKit'
 import fs from '@ohos.file.fs'
-import { nativeFetchAndValid,} from 'libentry.so'
+import { nativeFetchAndValid, nativeInit,} from 'libentry.so'
 import { promptAction } from '@kit.ArkUI'
 import { Selection, SelectionRepo } from './SelectionRepo'
 import { fileUri } from '@kit.CoreFileKit'
+import SocketProxyService from '../rpc/SocketProxyService'
 
+export interface FetchStatus{
+  action:string
+  args:string[]
+  progress: number
+  max: number
+}
 export class ProfileViewModel{
   repo: ProfileRepo = new ProfileRepo()
   selectionRepo: SelectionRepo = new SelectionRepo()
@@ -59,7 +66,7 @@ export class ProfileViewModel{
     await this.repo.addOrUpdate(profile)
   }
 
-  async  activeProfile(profile: Profile){
+  async activeProfile(profile: Profile){
     profile.active = true
     const list = await this.getProfileList()
     for (let d of list){
@@ -72,31 +79,35 @@ export class ProfileViewModel{
         await this.saveProfile(d)
       }
     }
+    let configPath = await this.getConfigPath(profile)
+    await SocketProxyService.load(configPath)
+    const selection = await this.selectionRepo.query(profile.uuid)
+    selection.forEach((s)=>{
+      SocketProxyService.patchSelector(s.proxy, s.selected)
+    })
   }
   async delete(uuid: string){
     await this.repo.delete(uuid)
+    await this.selectionRepo.delete(uuid)
   }
-  async addProfile(profile:Profile): Promise<boolean>{
+  async addProfile(profile:Profile, onUpdate:(value:FetchStatus)=>void): Promise<boolean>{
     const configPath = await this.getConfigPath(profile)
+    let result = false
     if (profile.source.startsWith("http")) {
       profile.type = ProfileType.Url
-      const result = await this.download(configPath, profile.source)
-      if(result){
-        await this.saveProfile(profile)
-        return true
-      }else{
-        promptAction.showToast({message:"下载配置文件失败"})
-        return false
-      }
+      result = await this.download(configPath, profile.source, false, onUpdate)
     }else{
-      if (profile.source){
-        profile.type = ProfileType.File
-        await fs.copy(profile.source, fileUri.getUriFromPath(configPath +  "/config.yaml"))
-        await this.saveProfile(profile)
-        return true;
-      }
+      profile.type = ProfileType.File
+      await fs.copy(profile.source, fileUri.getUriFromPath(configPath +  "/config.yaml"))
+      result = await this.download(configPath, "", true, onUpdate)
     }
-    return false
+    if(result){
+      await this.saveProfile(profile)
+      return true
+    }else{
+      promptAction.showToast({message:"添加配置失败"})
+      return false
+    }
   }
   async loadConfig(targetUri:string): Promise<string>{
     let configPath =  this.context?.tempDir + "/config.yaml"
@@ -104,29 +115,41 @@ export class ProfileViewModel{
     return configPath;
   }
 
-  async download(configPath:string, url: string): Promise<boolean>{
+  async download(configPath:string, url: string, force: boolean, onUpdate:(value:FetchStatus)=>void): Promise<boolean>{
     return new Promise((resolve, reject)=>{
-      nativeFetchAndValid(configPath, url, false, (type:string, value:string)=>{
-        console.debug("nativeFetchAndValid ", type)
+      nativeFetchAndValid(configPath, url, force, (type:string, value:string)=>{
         if (type == "fetch_complete"){
-            if(fs.accessSync(configPath + "/config.yaml")){
-              resolve(true)
-            }else{
-              resolve(false)
+            if(value != ""){
+              console.log("nativeFetchAndValid " + type + ":", value);
+              promptAction.showToast({message: `下载失败: ${value}` })
+            } else {
+              if(fs.accessSync(configPath + "/config.yaml")){
+                resolve(true)
+              }else{
+                resolve(false)
+              }
             }
+        }else {
+          console.log("nativeFetchAndValid " + type + ":", value);
+          let status = JSON.parse(value.trim()) as FetchStatus
+          onUpdate(status)
         }
       })
     })
-
   }
   async getConfigPath(profile: Profile): Promise<string>{
     const imported = this.context?.filesDir +"/import/"
     if(!await fs.access(imported, fs.AccessModeType.EXIST)){
        await fs.mkdir(imported)
     }
+
     const configPath = imported + profile.uuid
+
     if(!await fs.access(configPath, fs.AccessModeType.EXIST)){
       await fs.mkdir(configPath)
+    }
+    if(!await fs.access(configPath + "/providers", fs.AccessModeType.EXIST)){
+      await fs.mkdir(configPath + "/providers")
     }
     return configPath
   }

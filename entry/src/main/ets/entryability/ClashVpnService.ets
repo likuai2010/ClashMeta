@@ -47,7 +47,7 @@ export  class ClashVpnService{
   constructor(home: string) {
     logger.log("ClashVPN", `初始化Clash(golang)(${home})`)
     try {
-      nativeInit(home,"111")
+      nativeInit(home,"1.0.0")
       logger.log("ClashVPN", `初始化Clash(golang) 完成`)
     } catch (e) {
       logger.log("ClashVPN", `初始化Clash(golang)失败`)

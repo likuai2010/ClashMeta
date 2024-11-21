@@ -80,7 +80,6 @@ export class  SocketProxyService implements IClashManager{
 
     return new Promise(async (resolve, reject)=>{
       tcp.on('message', (value: socket.SocketMessageInfo) => {
-        console.log("SocketProxyService callack" )
         let text = new util.TextDecoder()
         let json = JSON.parse(text.decodeToString(new Uint8Array(value.message))) as RpcResult
         console.log("SocketProxyService callack", json.result)

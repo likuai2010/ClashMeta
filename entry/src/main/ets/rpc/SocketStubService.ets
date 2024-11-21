@@ -41,7 +41,6 @@ export class  SocketStubService{
     let params = request.params
     console.log("SocketStubService request", JSON.stringify(request))
     let result = await this.onRemoteMessage(code, params)
-    let encode = new util.TextEncoder()
     let rpcResult = {
       result: result
     } as RpcResult
@@ -50,7 +49,6 @@ export class  SocketStubService{
   }
   onRemoteMessage(code: number, data: (string | number| boolean)[]): Promise<string | number | boolean> {
     // 根据code处理客户端的请求
-    hilog.info(0x0000, 'testTag', `rpcServer  ${code}`, );
     return new Promise((resolve, reject)=>{
       switch (code){
         case ClashRpcType.queryTunnelState: {
@@ -145,6 +143,8 @@ export class  SocketStubService{
           this.onRemoteMessageRequest(client, value)
         })
         client.on('close', () => {
+          client.off("message")
+          client.off("close")
           this.clientPool.remove(client.clientId);
         });
       })
