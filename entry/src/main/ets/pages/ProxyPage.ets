@@ -208,7 +208,7 @@ export struct ProxysPage {
                   ForEach( Array.from(this.groupDict.get(g)?.proxies ?? []), (item: Proxy, i)=>{
                     GridCol({ span: 1 }) {
                       if ( this.groupDict.get(g)?.type != ProxyType.Selector){
-                        ProxyNode({name: item.title, type: item.subtitle, selected: i == 0})
+                        ProxyNode({name: item.title, type: item.subtitle, selected: this.groupDict.get(g)?.now == item.name})
                       }else{
                         ProxyNode({name: item.title, type: item.subtitle, selected: this.selectionsDict.get(g) == item.name, delay: item.delay + ""}).onClick(()=>{
                           this.selectNode(i, g, item)

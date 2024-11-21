@@ -20,8 +20,8 @@ export default class ClashVpnAbility extends VpnExtensionAbility {
     try {
       this.clashStubService.onConnect()
       await this.profileViewModel.init(this.context)
-      logger.log("ClashVPN", "后台vpn服务(ClashVpnAbility) 加载成功");
       const clashVpnService = new ClashVpnService(await this.profileViewModel.getHome());
+      this.clashStubService.setVpnService(clashVpnService)
       this.clashVpnService = clashVpnService
       const profile = await this.profileViewModel.getActive()
       if (profile != undefined){

@@ -7,7 +7,6 @@ import { ConfigurationOverride,
   OverrideSlot,
   ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
 
-
 export class  SocketProxyService implements IClashManager{
   async setLogObserver(observer: (message:string) => void): Promise<void> {
     await this.callbackRequest(ClashRpcType.setLogObserver, [], observer)
@@ -77,6 +76,10 @@ export class  SocketProxyService implements IClashManager{
   async clearOverride(slot: OverrideSlot): Promise<void> {
     await this.sendMessageRequest(ClashRpcType.clearOverride, [slot])
   }
+  async vpnStarted():Promise<boolean>{
+    let json = await this.sendMessageRequest(ClashRpcType.vpnStarted, [])
+    return json as boolean
+  }
 
   async sendMessageRequest(
     method: number,
@@ -89,39 +92,45 @@ export class  SocketProxyService implements IClashManager{
         let json = JSON.parse(text.decodeToString(new Uint8Array(value.message))) as RpcResult
         console.log("SocketProxyService callack", json.result)
         resolve(json.result)
-        tcp.close();
+        if(json.result != undefined){
+          tcp.close();
+        }
       })
       tcp.on("error", ()=>{
+        reject("error")
         console.log("SocketProxyService error" )
       })
       tcp.on('connect', () => {
-        let tcpSendOptions: socket.TCPSendOptions = {} as socket.TCPSendOptions;
-        tcpSendOptions.data = "";
+        console.log("SocketProxyService connect" )
         tcp.send({ data: JSON.stringify({method, params}) });
       });
-      tcp.on('close', () => {});
+      tcp.on('close', () => {
+        console.log("SocketProxyService close" )
+      });
       await tcp.bind(this.ipAddress)
       tcp.connect({address:this.ipAddress, timeout: CommonConstants.TCP_CONNECT_TIMEOUT}, (err: BusinessError) => {
         if (err) {
-          reject()
+          reject(err)
           return;
         }
       });
     })
   }
-
+  callBackTcp?: socket.TCPSocket
   async callbackRequest(
     method: number,
     params: (string| number | boolean) [] = [],
     callBack:(message:string)=>void
   ): Promise<string| number | boolean | undefined>{
+    if(this.callBackTcp){
+      this.callBackTcp.close()
+    }
     let tcp: socket.TCPSocket = socket.constructTCPSocketInstance();
+    this.callBackTcp = tcp;
     return new Promise(async (resolve, reject)=>{
       tcp.on('message', (value: socket.SocketMessageInfo) => {
         let text = new util.TextDecoder()
         callBack(text.decodeToString(new Uint8Array(value.message)))
-      })
-      tcp.on("error", ()=>{
       })
       tcp.on('connect', () => {
         let tcpSendOptions: socket.TCPSendOptions = {} as socket.TCPSendOptions;
@@ -129,7 +138,6 @@ export class  SocketProxyService implements IClashManager{
         tcp.send({ data: JSON.stringify({method, params}) });
         resolve(true)
       });
-      tcp.on('close', () => {});
       await tcp.bind(this.ipAddress)
       tcp.connect({address:this.ipAddress, timeout: CommonConstants.TCP_CONNECT_TIMEOUT}, (err: BusinessError) => {
         if (err) {

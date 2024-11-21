@@ -77,6 +77,7 @@ export  class ClashVpnService{
             nativePatchSelector(s.proxy, s.selected)
           })
         }
+        this.running = true
       }, 500)
       return true;
     } catch (error) {
@@ -86,6 +87,7 @@ export  class ClashVpnService{
     }
   }
   stopVpn(context: common.Context){
+    this.running = false
     if(this.vpnConnection == null){
       this.vpnConnection = vpnExtension.createVpnConnection(context as common.VpnExtensionContext);
     }

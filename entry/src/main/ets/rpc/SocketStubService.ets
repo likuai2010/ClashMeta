@@ -20,6 +20,7 @@ import {
   nativeSubscribeLogcat,
   nativeUpdateProvider,
   nativeWriteOverride} from 'libentry.so';
+import { ClashVpnService } from '../entryability/ClashVpnService';
 
 
 export class  SocketStubService{
@@ -55,7 +56,7 @@ export class  SocketStubService{
   }
   onRemoteMessage(code: number, data: (string | number| boolean)[]): Promise<string | number | boolean> {
     // 根据code处理客户端的请求
-    return new Promise((resolve, reject)=>{
+    return new Promise(async (resolve, reject) => {
       switch (code){
         case ClashRpcType.queryTunnelState: {
           resolve(nativeQueryTunnelState())
@@ -111,11 +112,6 @@ export class  SocketStubService{
           resolve(true)
           break;
         }
-        case ClashRpcType.setLogObserver:{
-          // reply.writeString(set(data.readString(), data.readString()))
-          resolve(true)
-          break;
-        }
         case ClashRpcType.queryConfiguration:{
           resolve(nativeQueryConfiguration())
           break;
@@ -126,15 +122,34 @@ export class  SocketStubService{
           })
           break;
         }
+        case ClashRpcType.vpnStarted:{
+          let timeout = true
+          while (true){
+            await sleepTime(100)
+            if(this.vpnService?.running){
+              timeout = false
+              resolve(true)
+              break;
+            }
+          }
+          setTimeout(()=>{
+            if (timeout)
+              resolve(false)
+          }, 2000)
+          break;
+        }
       }
     })
   }
   async sendClient(client: socket.TCPSocketConnection, message: string){
     await client.send({data: message, encoding:"utf-8"})
   }
+  vpnService?:ClashVpnService
+  setVpnService(service:ClashVpnService){
+    this.vpnService = service
+  }
   onConnect(){
     this.tcpServer.listen(this.ipAddress, (err: BusinessError) => {
-
       if (err) {
         console.debug("SocketStubService listen failure ", err.message)
         return;
@@ -142,15 +157,22 @@ export class  SocketStubService{
       console.debug("SocketStubService listen finished ")
       this.tcpServer.on('connect', (client: socket.TCPSocketConnection) => {
         this.clientPool.set(client.clientId, client);
+        console.debug("SocketStubService connect ", client.clientId)
         client.on("message", (value: socket.SocketMessageInfo) => {
           this.onRemoteMessageRequest(client, value)
         })
         client.on('close', () => {
           client.off("message")
           client.off("close")
+          console.debug("SocketStubService close ", client.clientId)
           this.clientPool.remove(client.clientId);
         });
       })
     })
   }
+}
+function sleepTime(timeout = 100): Promise<void>{
+  return new Promise((resolve)=>{
+    setTimeout(resolve, timeout)
+  })
 }
