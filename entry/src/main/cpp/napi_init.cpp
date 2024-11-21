@@ -274,9 +274,22 @@ static napi_value nativeUpdateProvider(napi_env env, napi_callback_info info)
     napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
     char* type = get_string_from_js(env, args[0]);
     char* name = get_string_from_js(env, args[1]);
+    
+     napi_value resourceName;
+    napi_create_string_latin1(env, "nativeUpdateProvider", NAPI_AUTO_LENGTH, &resourceName);
+    napi_threadsafe_function tsfn;
+    napi_create_threadsafe_function(env, args[0], NULL, resourceName, 0, 1, NULL, NULL, NULL, [](napi_env env, napi_value js_callback, void *context, void *data){
+        napi_value params[1];
+        napi_call_function(env, nullptr, js_callback, 0, params, nullptr);
+    }, &tsfn);
+    tsfnPool.tsfnMap["nativeUpdateProvider"] = tsfn;
+    
     updateProvider((void *)+[](){
-        
-    },type, name );
+        auto it = tsfnPool.tsfnMap.find("nativeUpdateProvider");
+        if (it != tsfnPool.tsfnMap.end()){
+            napi_call_threadsafe_function(it->second, &callbackData, napi_tsfn_blocking);
+        }
+    },type, name);
     free(type);
     free(name);
     return NULL;
