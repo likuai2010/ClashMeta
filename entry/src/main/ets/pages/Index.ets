@@ -13,6 +13,7 @@ import logger from '../pages/logs';
 import { promptAction } from '@kit.ArkUI';
 import { ClashVpnService } from '../entryability/ClashVpnService';
 import { ProviderPage } from './ProviderPage';
+import { ConfigViewer } from './ConfigViewer';
 
 let want: Want = {
   deviceId: "",
@@ -21,7 +22,7 @@ let want: Want = {
 };
 
 @Builder
-function PageRouter(name: string) {
+function PageRouter(name: string, params:string) {
   if (name === "proxys") {
     ProxysPage()
   } else if (name === "settings") {
@@ -34,6 +35,8 @@ function PageRouter(name: string) {
     ConfigsPage()
   }else if (name === "config-edit") {
     ConfigEditPage()
+  }else if (name === "config-viewer") {
+    ConfigViewer({configPath: params})
   } else if (name === "LogsPage") {
     LogsPage()
   } else if (name === "ProviderPage") {
@@ -77,6 +80,7 @@ struct Index {
     await vpnExtension.startVpnExtensionAbility(want);
     this.running  = true
     this.loading = true
+    profileViewModel.running = true
     setTimeout(async ()=>{
       this.loading = false;
     },1000)
@@ -85,6 +89,7 @@ struct Index {
   async stopVpn(){
     this.running = false
     await vpnExtension.stopVpnExtensionAbility(want)
+    profileViewModel.running = false
   }
   scroller: Scroller = new Scroller();
 

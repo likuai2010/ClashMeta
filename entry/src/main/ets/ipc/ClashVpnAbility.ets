@@ -19,7 +19,6 @@ export default class ClashVpnAbility extends VpnExtensionAbility {
       await this.clashStubService.onConnect(this.context)
       await this.profileViewModel.init(this.context)
       const clashVpnService = new ClashVpnService(await this.profileViewModel.getHome());
-      this.clashStubService.setVpnService(clashVpnService)
       this.clashVpnService = clashVpnService
       const profile = await this.profileViewModel.getActive()
       if (profile != undefined){
