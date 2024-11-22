@@ -104,10 +104,13 @@ export class  SocketStubService{
         break;
       }
       case ClashRpcType.updateProvider:{
-        nativeUpdateProvider(data[0] as string, data[1] as string, ()=>{
-          console.debug("SocketStubService updateProvider finished")
-          resolve(host,true)
+        await new Promise<boolean>((resovle)=>{
+          nativeUpdateProvider(data[0] as string, data[1] as string, ()=>{
+            console.debug("SocketStubService updateProvider finished")
+            resovle(true)
+          })
         })
+        resolve(host, true)
         break;
       }
       case ClashRpcType.queryOverride:{

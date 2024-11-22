@@ -17,6 +17,7 @@ export class ProfileViewModel{
   repo: ProfileRepo = new ProfileRepo()
   selectionRepo: SelectionRepo = new SelectionRepo()
   context: common.Context | undefined
+  running: boolean = false
   async init(context:common.Context){
     this.context = context
     await this.repo.init(context)
@@ -79,12 +80,14 @@ export class ProfileViewModel{
         await this.saveProfile(d)
       }
     }
-    let configPath = await this.getConfigPath(profile)
-    await SocketProxyService.load(configPath)
-    const selection = await this.selectionRepo.query(profile.uuid)
-    selection.forEach((s)=>{
-      SocketProxyService.patchSelector(s.proxy, s.selected)
-    })
+    if(this.running){
+      let configPath = await this.getConfigPath(profile)
+      await SocketProxyService.load(configPath)
+      const selection = await this.selectionRepo.query(profile.uuid)
+      selection.forEach((s)=>{
+        SocketProxyService.patchSelector(s.proxy, s.selected)
+      })
+    }
   }
   async delete(uuid: string){
     await this.repo.delete(uuid)

@@ -6,6 +6,7 @@ import { ClashRpcType, IClashManager, Provider, ProviderType } from '../ipc/ICla
 import { ConfigurationOverride,
   OverrideSlot,
   ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
+import { promptAction } from '@kit.ArkUI';
 
 export class  SocketProxyService implements IClashManager{
   async setLogObserver(observer: (message:string) => void): Promise<void> {
@@ -110,6 +111,8 @@ export class  SocketProxyService implements IClashManager{
       await tcp.bind(this.ipAddress)
       tcp.connect({address:this.ipAddress, timeout: CommonConstants.TCP_CONNECT_TIMEOUT}, (err: BusinessError) => {
         if (err) {
+          console.log("SocketProxyService err", err.message)
+          promptAction.showToast({message: "rpc socket fail" + err.message, duration: 3000})
           reject(err)
           return;
         }
@@ -141,6 +144,7 @@ export class  SocketProxyService implements IClashManager{
       await tcp.bind(this.ipAddress)
       tcp.connect({address:this.ipAddress, timeout: CommonConstants.TCP_CONNECT_TIMEOUT}, (err: BusinessError) => {
         if (err) {
+
           reject()
           return;
         }

@@ -78,6 +78,7 @@ struct Index {
     await vpnExtension.startVpnExtensionAbility(want);
     this.running  = true
     this.loading = true
+    profileViewModel.running = true
     setTimeout(async ()=>{
       this.loading = false;
     },1000)
@@ -86,6 +87,7 @@ struct Index {
   async stopVpn(){
     this.running = false
     await vpnExtension.stopVpnExtensionAbility(want)
+    profileViewModel.running = false
   }
   scroller: Scroller = new Scroller();
 
