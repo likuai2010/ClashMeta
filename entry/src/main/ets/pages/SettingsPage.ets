@@ -41,13 +41,24 @@ export struct SettingsPage {
     } as Dns
     config.sniffer = {
       enable: true,
-      forceDnsMapping: true,
-      parsePureIp: true,
-      overrideDestination: true,
+      "force-dns-mapping": true,
+      "parse-pure-ip": true,
+      "override-destination": true,
+      "sniff":{
+        "HTTP": {
+          ports:["80","8080-8880"],
+          "override-destination":true
+        },
+        "TLS": {
+          ports:["443","8443"]
+        },
+        "QUIC":{
+          ports:["443,8443"]
+        }
+      },
     } as Sniffer
     console.log("SettingsPage queryOverride", JSON.stringify(config))
     SocketProxyService.patchOverride(OverrideSlot.Persist, config)
-
   }
   build() {
     NavDestination() {

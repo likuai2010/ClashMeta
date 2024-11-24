@@ -5,26 +5,13 @@
         "name": "default",
         "type": "HarmonyOS",
         "material": {
-          "certpath": "C:\\Users\\Administrator\\.ohos\\config\\default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.cer",
-          "storePassword": "0000001B23D730E31A06093012D45ABFF8F22382FD541949D3FC16E1E62D4E4447221D3FB891A5C32CADA4",
+          "certpath": "/Users/fiber/.ohos/config/default_ClashMeta_k2UEnMDAP-gp8ypAwkwLUyHajmx9dcfqZE9ii6dufU8=.cer",
+          "storePassword": "0000001BAD06036DCCEEE6DB2C5B962ED7FF48DBF358CF0B37DC310B46A5CB204C9D3AC5A311CF7B9152C2",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B34B31A0E87B38235E97D96600AF1A965B66FA834AE1FED7A28C57F46BDC1E290DEC1522608425F",
-          "profile": "C:\\Users\\Administrator\\.ohos\\config\\default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.p7b",
+          "keyPassword": "0000001BD250AF82A543D59F3904A197D7DF87AECA271DD0687B2074276654390A9C78BA4944950103EEFE",
+          "profile": "/Users/fiber/.ohos/config/default_ClashMeta_k2UEnMDAP-gp8ypAwkwLUyHajmx9dcfqZE9ii6dufU8=.p7b",
           "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\Administrator\\.ohos\\config\\default_ClashForHarmonyOS_q-uxniKdPOBKq7matO9Q3hj0GBqxKq_JGxl27ID_ZBo=.p12"
-        }
-      },
-      {
-        "name": "prod",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "G:/huawei/store/moonlight-prod.cer",
-          "storePassword": "000000185D63C3220F2C0AC705E5081DA763A930CBCB1CF0A6C3102F53CD8F6CB2618E2084892EFC",
-          "keyAlias": "Moonlight",
-          "keyPassword": "0000001856023A4392F20760E23BAA18293A5FB2877C02BA5D93116E7C2D68734CD99AD240C809FE",
-          "profile": "G:/huawei/store/clash testRelease.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "G:/huawei/store/keystore.p12"
+          "storeFile": "/Users/fiber/.ohos/config/default_ClashMeta_k2UEnMDAP-gp8ypAwkwLUyHajmx9dcfqZE9ii6dufU8=.p12"
         }
       }
     ],
