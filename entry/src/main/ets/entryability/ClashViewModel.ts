@@ -93,7 +93,7 @@ export interface ConfigurationOverride {
   geoxurl?: GeoXUrl;
 }
 
-interface Dns {
+export interface Dns {
   enable?: boolean;
   preferH3?: boolean;
   listen?: string;
@@ -108,30 +108,30 @@ interface Dns {
   nameserverPolicy?: Record<string, string>;
 }
 
-interface DnsFallbackFilter {
+export interface DnsFallbackFilter {
   geoIp?: boolean;
   geoIpCode?: string;
   ipcidr?: string[];
   domain?: string[];
 }
 
-interface App {
+export interface App {
   appendSystemDns?: boolean;
 }
 
-enum FindProcessMode {
+export enum FindProcessMode {
   Off = "off",
   Strict = "strict",
   Always = "always",
 }
 
-enum DnsEnhancedMode {
+export enum DnsEnhancedMode {
   None = "normal",
   Mapping = "redir-host",
   FakeIp = "fake-ip",
 }
 
-interface  Sniffer {
+export interface  Sniffer {
   enable?: boolean;
   sniffing?: string[];
   forceDnsMapping?: boolean;
@@ -142,7 +142,7 @@ interface  Sniffer {
   portWhitelist?: string[];
 }
 
-interface  GeoXUrl {
+export interface  GeoXUrl {
   geoip?: string;
   mmdb?: string;
   geosite?: string;

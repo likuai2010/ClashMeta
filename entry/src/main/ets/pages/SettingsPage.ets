@@ -3,7 +3,8 @@ import { common, Want } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { rpc } from '@kit.IPCKit'
 import SocketProxyService from '../rpc/SocketProxyService'
-import { OverrideSlot } from '../entryability/ClashViewModel'
+import { Dns, OverrideSlot, Sniffer } from '../entryability/ClashViewModel'
+import { JSON } from '@kit.ArkTS'
 
 
 @Component
@@ -31,12 +32,22 @@ export struct NetworkSettingsPage {
 export struct SettingsPage {
   @Consume('router') routerInfos: NavPathStack
   async aboutToAppear(): Promise<void> {
-    let configs = await SocketProxyService.queryConfiguration()
-    console.log("SettingsPage ", configs)
-    let config = SocketProxyService.queryOverride(OverrideSlot.Persist)
+    // let configs = await SocketProxyService.queryConfiguration()
+    // console.log("SettingsPage ", configs)
+    let config = await SocketProxyService.queryOverride(OverrideSlot.Persist)
+    config.dns = {
+      enable: true,
+      "use-hosts": true
+    } as Dns
+    config.sniffer = {
+      enable: true,
+      forceDnsMapping: true,
+      parsePureIp: true,
+      overrideDestination: true,
+    } as Sniffer
+    console.log("SettingsPage queryOverride", JSON.stringify(config))
+    SocketProxyService.patchOverride(OverrideSlot.Persist, config)
 
-    SocketProxyService.patchOverride(OverrideSlot, new Conf)
-    console.log("SettingsPage ", config)
   }
   build() {
     NavDestination() {
