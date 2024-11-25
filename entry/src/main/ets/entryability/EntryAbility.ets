@@ -11,7 +11,7 @@ export default class EntryAbility extends UIAbility {
   }
   async  init(){
     await profileViewModel.init(this.context)
-    nativeInit(await profileViewModel.getHome(),"1.0.0")
+    //nativeInit(await profileViewModel.getHome(),"1.0.0")
   }
 
   onDestroy(): void {

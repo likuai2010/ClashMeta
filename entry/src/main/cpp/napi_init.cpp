@@ -595,6 +595,16 @@ static napi_value nativeInstallSideloadGeoip(napi_env env, napi_callback_info in
     free(data);
     return NULL;
 }
+static napi_value nativeNotifyDnsChanged(napi_env env, napi_callback_info info)
+{
+    size_t argc = 1;
+    napi_value args[1] = {nullptr};
+    napi_get_cb_info(env, info, &argc, args , nullptr, nullptr);
+    char* dnsList = get_string_from_js(env, args[0]);
+    notifyDnsChanged(dnsList);
+    free(dnsList);
+    return NULL;
+}
 
 
 EXTERN_C_START
@@ -647,8 +657,6 @@ static napi_value Init(napi_env env, napi_value exports)
     } else {
         OH_LOG_Print(LOG_APP, LOG_INFO, LOG_DOMAIN, "ClashNative", "%{public}s", "coreInit load success");
     }
-//    必须这里调用
-//     coreInit("/storage/Users/currentUser/Download/", "1.1.1", 30);
     napi_property_descriptor desc[] = {
         { "nativeFetchAndValid", nullptr, nativeFetchAndValid, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "nativeStopTun", nullptr, nativeStopTun, nullptr, nullptr, nullptr, napi_default, nullptr },
@@ -677,6 +685,7 @@ static napi_value Init(napi_env env, napi_value exports)
         { "nativeSubscribeLogcat", nullptr, nativeSubscribeLogcat, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "nativeCoreVersion", nullptr, nativeCoreVersion, nullptr, nullptr, nullptr, napi_default, nullptr },
         { "nativeQueryConfiguration", nullptr, nativeQueryConfiguration, nullptr, nullptr, nullptr, napi_default, nullptr },
+        { "nativeNotifyDnsChanged", nullptr, nativeNotifyDnsChanged, nullptr, nullptr, nullptr, napi_default, nullptr },
     };
     napi_define_properties(env, exports, sizeof(desc) / sizeof(desc[0]), desc);
     return exports;

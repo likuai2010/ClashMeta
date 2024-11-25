@@ -121,7 +121,8 @@ export class ProfileViewModel{
         if (type == "fetch_complete"){
             if(value != ""){
               console.log("nativeFetchAndValid " + type + ":", value);
-              promptAction.showToast({message: `下载失败: ${value}` })
+              promptAction.showToast({message: `下载失败: ${value}`, duration:3000 })
+              resolve(true)
             } else {
               if(fs.accessSync(configPath + "/config.yaml")){
                 resolve(true)

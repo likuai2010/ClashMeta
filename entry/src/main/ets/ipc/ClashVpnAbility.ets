@@ -1,21 +1,22 @@
 import {  VpnExtensionAbility } from '@kit.NetworkKit';
 import { Want } from '@kit.AbilityKit';
 import { ClashVpnService } from '../entryability/ClashVpnService';
-import { ClashStubService } from './ClashStubService';
 import { ProfileViewModel } from '../entryability/ProfileViewModel';
 import logger from '../pages/logs';
 import { JSON } from '@kit.ArkTS';
+import { SocketStubService } from '../rpc/SocketStubService';
 
 
 export default class ClashVpnAbility extends VpnExtensionAbility {
   profileViewModel = new ProfileViewModel()
   clashVpnService:ClashVpnService | undefined
-  clashStubService = new ClashStubService("ClashVpnAbility")
+  clashStubService = new SocketStubService()
   constructor() {
     super();
   }
   async  onCreate(want: Want) {
     try {
+      await this.clashStubService.onConnect(this.context)
       await this.profileViewModel.init(this.context)
       logger.log("ClashVPN", "后台vpn服务(ClashVpnAbility) 加载成功");
       const clashVpnService = new ClashVpnService(await this.profileViewModel.getHome());

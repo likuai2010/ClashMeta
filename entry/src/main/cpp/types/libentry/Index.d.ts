@@ -32,6 +32,6 @@ export const nativeQueryTrafficNow: () => number;
 export const nativeQueryTrafficTotal: () => number;
 
 //TODO ohos 不一定支持
-// export const nativeNotifyDnsChanged: (dnsList: string) => number;
+export const nativeNotifyDnsChanged: (dnsList: string) => number;
 // export const nativeNotifyTimeZoneChanged: (name: string, offset: number) => number;
 // export const nativeNotifyInstalledAppChanged: (uidList: string) => number;

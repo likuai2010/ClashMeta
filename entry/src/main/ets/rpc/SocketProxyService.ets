@@ -6,12 +6,14 @@ import { ClashRpcType, IClashManager, ProviderList, ProviderType } from '../ipc/
 import { ConfigurationOverride,
   OverrideSlot,
   ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
+import { common } from '@kit.AbilityKit';
 
 
 export class  SocketProxyService implements IClashManager{
-  private ipAddress: socket.NetAddress = {
-    address: CommonConstants.IP_ADDRESS,
-    port: CommonConstants.IP_PORT
+
+  context?: common.Context
+  init(context: common.Context){
+    this.context = context
   }
   async load(path: string): Promise<void> {
     await this.sendMessageRequest(ClashRpcType.load, [path])
@@ -76,31 +78,30 @@ export class  SocketProxyService implements IClashManager{
     method: number,
     params: (string| number | boolean) [] = []
   ): Promise<string| number | boolean | undefined>{
-    let tcp: socket.TCPSocket = socket.constructTCPSocketInstance();
-
+    let client: socket.LocalSocket = socket.constructLocalSocketInstance();
+    console.log("socketService sendMessageRequest" )
     return new Promise(async (resolve, reject)=>{
-      tcp.on('message', (value: socket.SocketMessageInfo) => {
+      client.on('message', (value: socket.LocalSocketMessageInfo) => {
         let text = new util.TextDecoder()
         let json = JSON.parse(text.decodeToString(new Uint8Array(value.message))) as RpcResult
-        console.log("SocketProxyService callack", json.result)
+        console.log("socketService proxy callack", json.result)
         resolve(json.result)
-        tcp.close();
+        client.close();
       })
-      tcp.on("error", ()=>{
-        console.log("SocketProxyService error" )
+      client.on("error", ()=>{
+        console.log("socketService proxy error" )
       })
-      tcp.on('connect', () => {
-        let tcpSendOptions: socket.TCPSendOptions = {} as socket.TCPSendOptions;
-        tcpSendOptions.data = "";
-        tcp.send({ data: JSON.stringify({method, params}) });
+      client.on('connect', () => {
+        console.log("socketService proxy error" )
       });
-      tcp.on('close', () => {});
-      await tcp.bind(this.ipAddress)
-      tcp.connect({address:this.ipAddress, timeout: CommonConstants.TCP_CONNECT_TIMEOUT}, (err: BusinessError) => {
-        if (err) {
-          reject()
-          return;
-        }
+      client.on('close', () => {
+        console.log("socketService proxy error" )
+      });
+      const socketPath = this.context?.filesDir + '/ipc_socket'
+      client.connect({address: { address: socketPath }, timeout:3000}).then(()=>{
+        client.send({ data: JSON.stringify({method, params}) });
+      }).catch((e:Error)=>{
+        console.log("socketService error", e)
       });
     })
   }

@@ -1,12 +1,8 @@
 import { socket } from '@kit.NetworkKit';
-import { CommonConstants, RpcRequest, RpcResult } from './RpcRequest';
-import { BusinessError } from '@kit.BasicServicesKit';
-import { HashMap, util } from '@kit.ArkTS';
+import { RpcRequest, RpcResult } from './RpcRequest';
+import {  util } from '@kit.ArkTS';
 import json from '@ohos.util.json';
 import { ClashRpcType } from '../ipc/IClashManager';
-import { rpc } from '@kit.IPCKit';
-import { ClashStubService } from '../ipc/ClashStubService';
-import { hilog } from '@kit.PerformanceAnalysisKit';
 import {
   nativeClearOverride,
   nativeHealthCheck,
@@ -19,32 +15,28 @@ import {
   nativeReadOverride,
   nativeUpdateProvider,
   nativeWriteOverride} from 'libentry.so';
+import { common } from '@kit.AbilityKit';
 
 
 export class  SocketStubService{
-  tcpServer: socket.TCPSocketServer = socket.constructTCPSocketServerInstance();
-  stub = new ClashStubService("SocketStubService")
-  ipAddress: socket.NetAddress = {
-    address: CommonConstants.IP_ADDRESS,
-    port: CommonConstants.IP_PORT
-  } as socket.NetAddress;
-
-  clientPool: HashMap<number, socket.TCPSocketConnection>
+  server: socket.LocalSocketServer = socket.constructLocalSocketServerInstance();
+  clientPool: Map<number, socket.LocalSocketConnection>
 
   constructor() {
-    this.clientPool = new HashMap()
+
+    this.clientPool = new Map()
   }
-  async onRemoteMessageRequest(client: socket.TCPSocketConnection, message: socket.SocketMessageInfo): Promise<void>{
+  async onRemoteMessageRequest(client: socket.LocalSocketConnection, message: socket.LocalSocketMessageInfo): Promise<void>{
     let decoder = new util.TextDecoder()
     let request = json.parse(decoder.decodeToString(new Uint8Array(message.message))) as RpcRequest
     let code = request.method
     let params = request.params
-    console.log("SocketStubService request", JSON.stringify(request))
+    console.log("socketService stub request", JSON.stringify(request))
     let result = await this.onRemoteMessage(code, params)
     let rpcResult = {
       result: result
     } as RpcResult
-    console.log("SocketStubService result", result)
+    console.log("socketService stub result", result)
     this.sendClient(client, json.stringify(rpcResult))
   }
   onRemoteMessage(code: number, data: (string | number| boolean)[]): Promise<string | number | boolean> {
@@ -126,28 +118,26 @@ export class  SocketStubService{
       }
     })
   }
-  async sendClient(client: socket.TCPSocketConnection, message: string){
+  async sendClient(client: socket.LocalSocketConnection, message: string){
     await client.send({data: message, encoding:"utf-8"})
   }
-  onConnect(){
-    this.tcpServer.listen(this.ipAddress, (err: BusinessError) => {
-
-      if (err) {
-        console.debug("SocketStubService listen failure ", err.message)
-        return;
-      }
-      console.debug("SocketStubService listen finished ")
-      this.tcpServer.on('connect', (client: socket.TCPSocketConnection) => {
+  async onConnect(context: common.Context){
+    try {
+      const socketPath = context.filesDir + '/ipc_socket'
+      await this.server.listen({ address: socketPath})
+      this.server.on('connect', (client: socket.LocalSocketConnection) => {
         this.clientPool.set(client.clientId, client);
-        client.on("message", (value: socket.SocketMessageInfo) => {
+        client.on("message", (value: socket.LocalSocketMessageInfo) => {
           this.onRemoteMessageRequest(client, value)
         })
         client.on('close', () => {
           client.off("message")
           client.off("close")
-          this.clientPool.remove(client.clientId);
+          this.clientPool.delete(client.clientId);
         });
       })
-    })
+    } catch (e) {
+      console.error("socketService", e.message)
+    }
   }
 }

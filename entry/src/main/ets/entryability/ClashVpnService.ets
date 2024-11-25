@@ -1,6 +1,8 @@
 import { vpnExtension } from '@kit.NetworkKit';
 import { common, Context } from '@kit.AbilityKit';
-import { nativeInit, nativeLoad, nativePatchSelector, nativeStartTun, nativeStopTun } from 'libentry.so';
+import { nativeInit, nativeLoad,
+  nativeNotifyDnsChanged,
+  nativePatchSelector, nativeStartTun, nativeStopTun } from 'libentry.so';
 import logger from '../pages/logs';
 import { Selection } from './SelectionRepo';
 
@@ -78,6 +80,7 @@ export  class ClashVpnService{
           })
         }
       }, 500)
+
       return true;
     } catch (error) {
       logger.log("ClashVPN", `Clash启动失败 ${error.message}=> ${error.stack}` )
@@ -86,12 +89,14 @@ export  class ClashVpnService{
     }
   }
   stopVpn(context: common.Context){
+    nativeNotifyDnsChanged("8.8.8.8")
+    nativeStopTun()
     if(this.vpnConnection == null){
       this.vpnConnection = vpnExtension.createVpnConnection(context as common.VpnExtensionContext);
     }
     logger.log("ClashVPN", `停止vpn服务` )
     this.vpnConnection?.destroy()
-    nativeStopTun()
+
   }
 }
 

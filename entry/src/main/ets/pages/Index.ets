@@ -6,7 +6,7 @@ import { NetworkSettingsPage, SettingsPage } from './SettingsPage';
 import { ConfigEditPage, ConfigsPage } from './ConfigEditPage';
 import { ProxysPage } from './ProxyPage';
 import profileViewModel, { ProfileViewModel } from '../entryability/ProfileViewModel';
-import clashProxyService from '../ipc/ClashProxyService';
+import clashProxyService from '../rpc/SocketProxyService';
 import { Profile } from '../entryability/ProfileRepo';
 import { ConfigViewer } from './ConfigViewer';
 import logger from '../pages/logs';
@@ -49,6 +49,7 @@ struct Index {
   @State profile: Profile | undefined = undefined
   async aboutToAppear(): Promise<void> {
     this.profile = await profileViewModel.getActive()
+    clashProxyService.init(getContext(this))
     // let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
     // this.running = result
      //  clashViewModel.init(getContext(this))
@@ -71,12 +72,11 @@ struct Index {
     }
     await vpnExtension.startVpnExtensionAbility(want);
     this.running = true
-
   }
   async stopVpn(){
     this.running = false
     await vpnExtension.stopVpnExtensionAbility(want)
-    clashProxyService.stop(getContext(this) as common.UIAbilityContext)
+    // clashProxyService.stop(getContext(this) as common.UIAbilityContext)
   }
   scroller: Scroller = new Scroller();
 
@@ -110,7 +110,7 @@ struct Index {
               }})
               ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
                 try {
-                  await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+                  // await clashProxyService.start(getContext(this) as common.UIAbilityContext)
                   this.routerInfos.pushPath({name:"proxys"})
                 } catch (e) {
                   promptAction.showToast({message:"rpc服务启动失败: " + e})
