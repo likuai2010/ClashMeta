@@ -33,7 +33,41 @@ interface MenuInfo{
   value: string
 }
 
+@Component
+export struct ProxysPage1 {
+  @State message: Map<number, string> = new Map([[0, "a"], [1, "b"], [3, "c"]]);
 
+  build() {
+    NavDestination() {
+      Row() {
+        Column() {
+          ForEach(Array.from(this.message.entries()), (item: [number, string]) => {
+            Text(`${item[0]}`).fontSize(30)
+            Text(`${item[1]}`).fontSize(30)
+            Divider()
+          })
+          Button('init map').onClick(() => {
+            this.message = new Map([[0, "a"], [1, "b"], [3, "c"]]);
+          })
+          Button('set new one').onClick(() => {
+            this.message.set(4, "d");
+          })
+          Button('clear').onClick(() => {
+            this.message.clear();
+          })
+          Button('replace the first one').onClick(() => {
+            this.message.set(0, "aa");
+          })
+          Button('delete the first one').onClick(() => {
+            this.message.delete(0);
+          })
+        }
+        .width('100%')
+      }
+      .height('100%')
+    }
+  }
+}
 @Component
 export struct ProxysPage {
   replay: NavigationMenuItem = {'value': "", 'icon': "resources/base/media/ic_baseline_flash_on.svg", 'action': ()=> {}}
@@ -150,10 +184,10 @@ export struct ProxysPage {
   scroller: Scroller = new Scroller();
   private controller: TabsController = new TabsController();
   @State tabIndexes: number = 0
-  @State active: number = 0
+  @State selectionsDict: Map<string, string> = new Map()
   profile?: Profile
   @State groupNames: string[] = []
-  @State groupDict: HashMap<string, ProxyGroup> = new HashMap()
+  @State groupDict: Map<string, ProxyGroup> = new Map()
 
   aboutToAppear(): void {
     this.fetchProxyGroupList()
@@ -162,34 +196,36 @@ export struct ProxysPage {
     this.proxyModel = (await clashProxyService.queryOverride(OverrideSlot.Session)).mode || TunnelState.None
     let names = await clashProxyService.queryProxyGroupNames(false)
     console.debug("fetchProxyGroupList ", names,  this.proxyModel)
-    let dict: HashMap<string, ProxyGroup> = new HashMap()
+    this.groupDict =  new Map()
     for (let n of names){
       const proxyGroup = await clashProxyService.queryProxyGroup(n, this.sortModel)
-      dict.set(n, proxyGroup)
+      this.groupDict.set(n, proxyGroup)
     }
-    this.groupDict = dict
-    this.groupNames = names
+    this.groupNames = Array.from(this.groupDict.keys())
     try {
       this.profile = await profileViewModel.getActive()
-      let selection = await profileViewModel.getSelection(this.profile?.uuid)
-      if (selection){
-        this.tabIndexes = this.groupNames.indexOf(selection!.proxy)
-        const groupName = this.groupNames[this.tabIndexes];
-        const groupInfo = this.groupDict.get(groupName);
-        if(groupInfo){
-          this.active = groupInfo.proxies.findIndex((p)=>p.name == selection!.selected)
-          setTimeout(()=>{
-            this.controller.changeIndex(this.tabIndexes)
-          }, 50)
-        }
-      }
+      const selections = await profileViewModel.getSelection(this.profile?.uuid)
+      this.selectionsDict = new Map()
+      selections.forEach((s)=>{
+        this.selectionsDict.set(s.proxy, s.selected)
+      })
+      // if(selections[0]){
+      //   setTimeout(()=>{
+      //     this.controller.changeIndex(this.tabIndexes)
+      //   }, 50)
+      // }
+      // const groupName = this.groupNames[this.tabIndexes];
+      // const groupInfo = this.groupDict.get(groupName);
+      // if(groupInfo){
+      //   setTimeout(()=>{}, 50)
+      // }
     } catch (e) {
       promptAction.showToast({message: `getSelection error: ${e}`})
     }
 
   }
   async selectNode(i: number, g: string, node: Proxy){
-    this.active = i
+    this.selectionsDict.set(g, node.name)
     let result = await clashProxyService.patchSelector(g, node.name)
     if (this.profile){
       logger.log("selectNode ${}:  ", `|${g}  ${node.name}`)
@@ -204,19 +240,18 @@ export struct ProxysPage {
     NavDestination() {
       Column() {
         Tabs({ barPosition: BarPosition.Start, controller: this.controller }) {
-          ForEach( this.groupNames, (g:string)=>{
+          ForEach(Array.from(this.groupDict.keys()), (g:string)=>{
             TabContent() {
               Scroll(this.scroller) {
                 GridRow({ columns: this.layoutModel, gutter: 5 }) {
-                  if(this.groupDict.hasKey(g)){
-                    ForEach(this.groupDict.get(g).proxies, (item: Proxy, i)=>{
-                      GridCol({ span: 1 }) {
-                        ProxyNode({name: item.title, type: item.subtitle, selected: this.active == i, delay: item.delay + ""}).onClick(()=>{
-                          this.selectNode(i, g, item)
-                        })
-                      }
-                    }, (d: Proxy)=> JSON.stringify(d))
-                  }
+
+                  ForEach( Array.from(this.groupDict.get(g)?.proxies ?? []), (item: Proxy, i)=>{
+                    GridCol({ span: 1 }) {
+                      ProxyNode({name: item.title, type: item.subtitle, selected: this.selectionsDict.get(g) == item.name, delay: item.delay + ""}).onClick(()=>{
+                        this.selectNode(i, g, item)
+                      })
+                    }
+                  }, (d: Proxy)=> JSON.stringify(d))
                 }
               }.padding(5).height("100%").backgroundColor("#ffececec")
             }

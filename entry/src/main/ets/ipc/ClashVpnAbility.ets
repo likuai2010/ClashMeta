@@ -23,10 +23,8 @@ export default class ClashVpnAbility extends VpnExtensionAbility {
       const profile = await this.profileViewModel.getActive()
       if (profile != undefined){
         let configPath = await this.profileViewModel.getConfigPath(profile)
-        let selection = await this.profileViewModel.getSelection(profile.uuid)
-        if(selection)
-          logger.log("ClashVPN", `selection: ${selection.proxy} ${selection.selected}`);
-        await clashVpnService.StartVpn(configPath, this.context, selection)
+        let selections = await this.profileViewModel.getSelection(profile.uuid)
+        await clashVpnService.StartVpn(configPath, this.context, selections)
       }else{
         logger.log("ClashVPN", `配置文件 没有加载 `);
       }

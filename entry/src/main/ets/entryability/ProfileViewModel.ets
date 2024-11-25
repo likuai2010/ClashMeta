@@ -32,7 +32,7 @@ export class ProfileViewModel{
     }
     return new Profile();
   }
-  async getSelection(uuid: string | null = null): Promise<Selection | null>{
+  async getSelection(uuid: string | null = null): Promise<Selection[]>{
     if (uuid == null)
       uuid = (await this.getActive())?.uuid ?? ""
     return await this.selectionRepo.query(uuid)
