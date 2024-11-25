@@ -46,7 +46,7 @@ export class  SocketStubService{
   }
   onRemoteMessage(code: number, data: (string | number| boolean)[]): Promise<string | number | boolean> {
     // 根据code处理客户端的请求
-    return new Promise((resolve, reject)=>{
+    return new Promise(async (resolve, reject) => {
       switch (code){
         case ClashRpcType.queryTunnelState: {
           resolve(nativeQueryTunnelState())
@@ -102,11 +102,6 @@ export class  SocketStubService{
           resolve(true)
           break;
         }
-        case ClashRpcType.setLogObserver:{
-          // reply.writeString(set(data.readString(), data.readString()))
-          resolve(true)
-          break;
-        }
         case ClashRpcType.queryConfiguration:{
           resolve(nativeQueryConfiguration())
           break;
@@ -116,6 +111,9 @@ export class  SocketStubService{
             resolve(e)
           })
           break;
+        }
+        case ClashRpcType.vpnStarted:{
+         
         }
       }
     })
@@ -128,18 +126,23 @@ export class  SocketStubService{
       const socketPath = context.filesDir + '/ipc_socket'
       await this.server.listen({ address: socketPath})
       this.server.on('connect', (client: socket.LocalSocketConnection) => {
-        this.clientPool.set(client.clientId, client);
-        client.on("message", (value: socket.LocalSocketMessageInfo) => {
-          this.onRemoteMessageRequest(client, value)
-        })
-        client.on('close', () => {
-          client.off("message")
-          client.off("close")
-          this.clientPool.delete(client.clientId);
-        });
+          this.clientPool.set(client.clientId, client);
+          client.on("message", (value: socket.LocalSocketMessageInfo) => {
+            this.onRemoteMessageRequest(client, value)
+          })
+          client.on('close', () => {
+            client.off("message")
+            client.off("close")
+            this.clientPool.delete(client.clientId);
+          });
       })
     } catch (e) {
       console.error("socketService", e.message)
     }
   }
+}
+function sleepTime(timeout = 100): Promise<void>{
+  return new Promise((resolve)=>{
+    setTimeout(resolve, timeout)
+  })
 }

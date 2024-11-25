@@ -6,6 +6,7 @@ export struct ActionCard {
   @Prop value?: String
   icon: string = "adb"
   @Prop isRunning?: boolean = undefined
+  @Prop loading: boolean = false
   click?: ()=>void
   fColor(){
     if(this.isRunning == undefined)
@@ -26,7 +27,11 @@ export struct ActionCard {
   }
   build() {
     Row(){
-      Icon({icon:$r(`app.media.${this.icon}`), iconColor:this.fColor()})
+      if (this.loading) {
+        LoadingProgress().size({width:32,height:32}).padding(10)
+      } else {
+        Icon({icon:$r(`app.media.${this.icon}`), iconColor:this.fColor()})
+      }
       Column(){
         Text(this.title).fontColor(this.fColor())
         Blank().height(8)

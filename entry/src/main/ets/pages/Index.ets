@@ -49,6 +49,7 @@ struct Index {
   vpnConnection = vpnExtension.createVpnConnection(getContext(this) as common.VpnExtensionContext);
   @Provide('router') routerInfos: NavPathStack = new NavPathStack()
   @State running: boolean = false;
+  @State loading: boolean = false;
   @State profile: Profile | undefined = undefined
   async aboutToAppear(): Promise<void> {
     this.profile = await profileViewModel.getActive()
@@ -74,12 +75,16 @@ struct Index {
       return
     }
     await vpnExtension.startVpnExtensionAbility(want);
-    this.running = true
+    this.running  = true
+    this.loading = true
+    setTimeout(async ()=>{
+      this.loading = false;
+    },1000)
+
   }
   async stopVpn(){
     this.running = false
     await vpnExtension.stopVpnExtensionAbility(want)
-    // clashProxyService.stop(getContext(this) as common.UIAbilityContext)
   }
   scroller: Scroller = new Scroller();
 
@@ -104,28 +109,31 @@ struct Index {
               Text("Clash Meta For HarmonyOS").fontSize(20).fontWeight(FontWeight.Bold)
             }.padding({ top: 20 })
             if(!this.running){
-              ActionCard({title:"已停止", value: "点击启动", isRunning: this.running, icon:"ic_outline_not_interested", click: async ()=>{
+              ActionCard({title:"已停止", value: "点击启动", loading: this.loading, isRunning: this.running, icon:"ic_outline_not_interested", click: async ()=>{
                 this.startVpn()
               } })
             }else{
-              ActionCard({title:"运行中", value: "已转发",  isRunning: this.running,  icon:"ic_outline_check_circle", click: async ()=>{
-                this.stopVpn()
+              ActionCard({title:"运行中", value: "已转发",loading: this.loading, isRunning: this.running,  icon:"ic_outline_check_circle", click: async ()=>{
+                if(!this.loading){
+                  this.stopVpn()
+                }
               }})
               ActionCard({title:"代理", value: "规则模式", icon:"ic_baseline_apps", click: async ()=>{
-                try {
-                  // await clashProxyService.start(getContext(this) as common.UIAbilityContext)
+                if(!this.loading){
                   this.routerInfos.pushPath({name:"proxys"})
-                } catch (e) {
-                  promptAction.showToast({message:"rpc服务启动失败: " + e})
                 }
               }})
             }
             if(this.running){
               ActionLabel({title:"外部资源", icon:"ic_baseline_extension", click:()=>{
-                this.routerInfos.pushPath({name:"ProviderPage"})
+                if(!this.loading){
+                  this.routerInfos.pushPath({name:"ProviderPage"})
+                }
               }})
               ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
-                this.routerInfos.pushPath({name: "LogsPage", param: "/data/storage/el2/base/haps/entry/files/log.txt"})
+                if(!this.loading){
+                  this.routerInfos.pushPath({name: "LogsPage"})
+                }
               }})
             }
             ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{

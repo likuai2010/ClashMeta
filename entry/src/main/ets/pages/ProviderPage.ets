@@ -1,6 +1,5 @@
 import SocketProxyService from "../rpc/SocketProxyService"
 import {  Provider,  } from '../ipc/IClashManager';
-import { ActionLabel } from "./compoments/common";
 import { Icon } from "./compoments/icons";
 
 @Component

@@ -7,7 +7,6 @@ import { ConfigurationOverride,
   ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
 import { common } from '@kit.AbilityKit';
 
-
 export class  SocketProxyService implements IClashManager{
   context?: common.Context
   init(context: common.Context) {
@@ -77,6 +76,10 @@ export class  SocketProxyService implements IClashManager{
   async clearOverride(slot: OverrideSlot): Promise<void> {
     await this.sendMessageRequest(ClashRpcType.clearOverride, [slot])
   }
+  async vpnStarted():Promise<boolean>{
+    let json = await this.sendMessageRequest(ClashRpcType.vpnStarted, [])
+    return json as boolean
+  }
 
   async sendMessageRequest(
     method: number,
@@ -105,7 +108,6 @@ export class  SocketProxyService implements IClashManager{
       });
     })
   }
-
   async callbackRequest(
     method: number,
     params: (string| number | boolean) [] = [],
