@@ -2,8 +2,9 @@ import { AbilityConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import profileViewModel from '../entryability/ProfileViewModel';
-import { nativeInit } from 'libentry.so';
 import { vpnExtension } from '@kit.NetworkKit';
+import SocketProxyService from '../rpc/SocketProxyService';
+import { Dns, OverrideSlot, Sniffer } from './ClashViewModel';
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -19,9 +20,38 @@ export default class EntryAbility extends UIAbility {
         abilityName: "ClashVpnAbility",
       });
     } catch (e) {
+      console.error("init vpn service", e.message | e)
       this.context.terminateSelf()
     }
-    //nativeInit(await profileViewModel.getHome(),"1.0.0")
+    setTimeout(()=>{
+       this.patch()
+    }, 500)
+  }
+  async patch(){
+    let config = await SocketProxyService.queryOverride(OverrideSlot.Persist)
+    config.dns = {
+      enable: true,
+      "use-hosts": true
+    } as Dns
+    config.sniffer = {
+      enable: true,
+      "force-dns-mapping": true,
+      "parse-pure-ip": true,
+      "override-destination": true,
+      "sniff":{
+        "HTTP": {
+          ports:["80","8080-8880"],
+          "override-destination":true
+        },
+        "TLS": {
+          ports:["443","8443"]
+        },
+        "QUIC":{
+          ports:["443","8443"]
+        }
+      },
+    } as Sniffer
+    SocketProxyService.patchOverride(OverrideSlot.Persist, config)
   }
 
   onDestroy(): void {

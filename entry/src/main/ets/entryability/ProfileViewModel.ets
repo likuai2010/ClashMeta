@@ -96,7 +96,6 @@ export class ProfileViewModel{
       await this.saveProfile(profile)
       return true
     }else{
-      promptAction.showToast({message:"添加配置失败"})
       return false
     }
   }
@@ -112,6 +111,7 @@ export class ProfileViewModel{
             if(fs.accessSync(configPath + "/config.yaml")){
               resolve(true)
             }else{
+              promptAction.showToast({message: `下载失败`, duration:3000 })
               resolve(false)
             }
           }
