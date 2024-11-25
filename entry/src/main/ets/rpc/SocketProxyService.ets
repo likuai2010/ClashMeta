@@ -6,7 +6,12 @@ import { ConfigurationOverride,
   OverrideSlot,
   ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
 import { common } from '@kit.AbilityKit';
+import { FetchStatus } from '../entryability/ProfileViewModel';
 
+interface FetchInfo{
+  type: string
+  value: string
+}
 export class  SocketProxyService implements IClashManager{
   context?: common.Context
   init(context: common.Context) {
@@ -15,9 +20,18 @@ export class  SocketProxyService implements IClashManager{
   async setLogObserver(observer: (message:string) => void): Promise<()=>void> {
     return this.callbackRequest(ClashRpcType.setLogObserver, [], observer)
   }
+  async fetchAndValid(configPath:string, url:string, force: boolean, callback: (type:string, value:string)=>void){
+   return this.callbackRequest(ClashRpcType.fetchAndValid, [configPath, url, force], async (message:string)=>{
+      console.debug("fetchAndValid", message)
+      const json = JSON.parse(message) as FetchInfo
+      callback(json.type, json.value)
+    })
+  }
   async load(path: string): Promise<void> {
     await this.sendMessageRequest(ClashRpcType.load, [path])
   }
+
+
 
   async queryTunnelState(): Promise<TunnelState> {
     let result = await this.sendMessageRequest(ClashRpcType.queryTunnelState, [])
@@ -76,8 +90,12 @@ export class  SocketProxyService implements IClashManager{
   async clearOverride(slot: OverrideSlot): Promise<void> {
     await this.sendMessageRequest(ClashRpcType.clearOverride, [slot])
   }
-  async vpnStarted():Promise<boolean>{
-    let json = await this.sendMessageRequest(ClashRpcType.vpnStarted, [])
+  async startClash():Promise<boolean>{
+    let json = await this.sendMessageRequest(ClashRpcType.startClash, [])
+    return json as boolean
+  }
+  async stopClash():Promise<boolean>{
+    let json = await this.sendMessageRequest(ClashRpcType.stopClash, [])
     return json as boolean
   }
 
@@ -103,7 +121,7 @@ export class  SocketProxyService implements IClashManager{
       client.connect({address: { address: socketPath }, timeout:3000}).then(()=>{
         client.send({ data: JSON.stringify({method, params}) });
       }).catch((e:Error)=>{
-        console.log("socketService error", e)
+        console.log("socketService error", e.message)
         reject(e)
       });
     })
@@ -119,7 +137,8 @@ export class  SocketProxyService implements IClashManager{
         let text = new util.TextDecoder()
         callBack(text.decodeToString(new Uint8Array(value.message)))
       })
-      tcp.on('error', () => {
+      tcp.on('error', (e:Error) => {
+        console.log("socketService error", e.message)
         reject("失败")
       });
       const socketPath = this.context?.filesDir + '/ipc_socket'
@@ -129,7 +148,7 @@ export class  SocketProxyService implements IClashManager{
           tcp.close()
         })
       }).catch((e:Error)=>{
-        console.log("socketService error", e)
+        console.log("socketService error", e.message)
         reject(e)
       });
     })

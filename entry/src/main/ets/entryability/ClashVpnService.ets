@@ -45,8 +45,12 @@ export  class ClashVpnService{
   vpnConnection : vpnExtension.VpnConnection | undefined
   public configPath: string = ""
   protectSocketPath: string = ""
+  context?: Context
+  constructor() {
 
-  constructor(home: string) {
+  }
+  init(home: string, context: Context){
+    this.context = context;
     logger.log("ClashVPN", `初始化Clash(golang)(${home})`)
     try {
       nativeInit(home,"1.0.0")
@@ -55,12 +59,12 @@ export  class ClashVpnService{
       logger.log("ClashVPN", `初始化Clash(golang)失败`)
     }
   }
-  async StartVpn(configPath: string, context: Context, selection: Selection[]): Promise<boolean> {
+  async StartVpn(configPath: string,  selection: Selection[]): Promise<boolean> {
     let config = new Config(this.tunIp, "");
     let tunFd = -1
     try {
       if(!this.noVpn){
-        this.vpnConnection = vpnExtension.createVpnConnection(context as common.VpnExtensionContext);
+        this.vpnConnection = vpnExtension.createVpnConnection(this.context as common.VpnExtensionContext);
         tunFd = await this.vpnConnection.create(config)
       }
       logger.log("ClashVPN", `获取tunFd: ${tunFd}`)
@@ -79,7 +83,7 @@ export  class ClashVpnService{
             nativePatchSelector(s.proxy, s.selected)
           })
         }
-      }, 500)
+      }, 100)
 
       return true;
     } catch (error) {
@@ -88,15 +92,11 @@ export  class ClashVpnService{
       return false
     }
   }
-  stopVpn(context: common.Context){
+  stopVpn(){
     nativeNotifyDnsChanged("8.8.8.8")
     nativeStopTun()
-    if(this.vpnConnection == null){
-      this.vpnConnection = vpnExtension.createVpnConnection(context as common.VpnExtensionContext);
-    }
     logger.log("ClashVPN", `停止vpn服务` )
     this.vpnConnection?.destroy()
-
   }
 }
 

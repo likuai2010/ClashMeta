@@ -1,11 +1,11 @@
 
 
 export const nativeStartTun: (fd: number, callback: (fd: number) => void) => number;
-export const nativeFetchAndValid: (path: String, url: String, force: Boolean, callback: (type: string, value: string) => void ) => boolean;
+export const nativeFetchAndValid: (path: string, url: string, force: boolean, callback: (type: string, value: string) => void ) => boolean;
 export const nativeHealthCheck: ( name: string, callback: (value: string) => void ) => string;
-export const nativeLoad: (path: String,  callback: (value: string) => void ) => boolean;
+export const nativeLoad: (path: string,  callback: (value: string) => void ) => boolean;
 export const nativeSubscribeLogcat: (callback: (value: string) => void ) => string
-export const nativeUpdateProvider: (type: String, name: String, callback: ( value: string) => void ) => void;
+export const nativeUpdateProvider: (type: string, name: String, callback: ( value: string) => void ) => void;
 
 
 export const nativeStopTun: () => void;

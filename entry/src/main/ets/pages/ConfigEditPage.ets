@@ -168,7 +168,7 @@ export struct Loading {
         LoadingProgress().height(100).width(80)
         Column(){
           Text(this.text).maxLines(2).textOverflow({overflow: TextOverflow.Ellipsis})
-          if(this.fetchStatus?.action){
+          if (this.fetchStatus?.action){
             Text(`(${this.fetchStatus.progress}/${this.fetchStatus.max}):${this.fetchStatus.args[0]}`)
           }
         }.layoutWeight(1)

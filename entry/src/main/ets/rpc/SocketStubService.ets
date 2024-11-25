@@ -1,10 +1,11 @@
 import { socket } from '@kit.NetworkKit';
-import { RpcRequest, RpcResult } from './RpcRequest';
+import { RpcRequest } from './RpcRequest';
 import {  util } from '@kit.ArkTS';
 import json from '@ohos.util.json';
 import { ClashRpcType } from '../ipc/IClashManager';
 import {
   nativeClearOverride,
+  nativeFetchAndValid,
   nativeHealthCheck,
   nativeLoad,
   nativePatchSelector,
@@ -17,14 +18,14 @@ import {
   nativeUpdateProvider,
   nativeWriteOverride} from 'libentry.so';
 import { common } from '@kit.AbilityKit';
-
+import { ProfileViewModel } from '../entryability/ProfileViewModel';
+import { ClashVpnService } from '../entryability/ClashVpnService';
 
 export class  SocketStubService{
   server: socket.LocalSocketServer = socket.constructLocalSocketServerInstance();
   clientPool: Map<number, socket.LocalSocketConnection>
 
   constructor() {
-
     this.clientPool = new Map()
   }
   async onRemoteMessageRequest(client: socket.LocalSocketConnection, message: socket.LocalSocketMessageInfo): Promise<void>{
@@ -32,16 +33,23 @@ export class  SocketStubService{
     let request = json.parse(decoder.decodeToString(new Uint8Array(message.message))) as RpcRequest
     let code = request.method
     let params = request.params
-    console.log("socketService stub request", JSON.stringify(request))
-    if(code != ClashRpcType.setLogObserver){
-      let result = await this.onRemoteMessage(code, params)
-      console.log("socketService stub result", result)
-      this.sendClient(client, json.stringify({ result: result}))
-    } else {
+    console.debug("socketService stub request", JSON.stringify(request))
+    if(code == ClashRpcType.setLogObserver){
       // 订阅日志，需要持续输出
       nativeSubscribeLogcat((value)=>{
         this.sendClient(client, value)
       })
+    }  else if(code == ClashRpcType.fetchAndValid){
+      nativeFetchAndValid(params[0] as string, params[1] as string, params[2] as boolean, (type:string, value: string)=>{
+        console.debug("socketService stub result", type)
+        this.sendClient(client, json.stringify({type:type, value: value}))
+        if (type == "fetch_complete")
+            client.close()
+      })
+    } else {
+      let result = await this.onRemoteMessage(code, params)
+      console.debug("socketService stub result", result)
+      this.sendClient(client, json.stringify({ result: result}))
     }
   }
   onRemoteMessage(code: number, data: (string | number| boolean)[]): Promise<string | number | boolean> {
@@ -112,8 +120,21 @@ export class  SocketStubService{
           })
           break;
         }
-        case ClashRpcType.vpnStarted:{
-         
+        case ClashRpcType.startClash:{
+          this.startVpn().then(()=>{
+            resolve(true)
+          }).catch((e:Error)=>{
+            resolve(e.message)
+          })
+          break;
+        }
+        case ClashRpcType.stopClash:{
+          this.stopVpn().then(()=>{
+            resolve(true)
+          }).catch((e:Error)=>{
+            resolve(e.message)
+          })
+          break;
         }
       }
     })
@@ -121,8 +142,13 @@ export class  SocketStubService{
   async sendClient(client: socket.LocalSocketConnection, message: string){
     await client.send({data: message, encoding:"utf-8"})
   }
+  profileViewModel: ProfileViewModel = new  ProfileViewModel()
+  clashVpnService = new ClashVpnService();
   async onConnect(context: common.Context){
     try {
+      this.profileViewModel.init(context)
+      this.clashVpnService.init(await this.profileViewModel.getHome(), context)
+
       const socketPath = context.filesDir + '/ipc_socket'
       await this.server.listen({ address: socketPath})
       this.server.on('connect', (client: socket.LocalSocketConnection) => {
@@ -139,6 +165,19 @@ export class  SocketStubService{
     } catch (e) {
       console.error("socketService", e.message)
     }
+  }
+  async startVpn(){
+    const profile = await this.profileViewModel.getActive()
+    if (profile != undefined){
+      let configPath = await this.profileViewModel.getConfigPath(profile)
+      let selections = await this.profileViewModel.getSelection(profile.uuid)
+      await this.clashVpnService.StartVpn(configPath, selections)
+    } else {
+      console.log("ClashVPN", `配置文件 没有加载 `);
+    }
+  }
+  async stopVpn(){
+    this.clashVpnService?.stopVpn()
   }
 }
 function sleepTime(timeout = 100): Promise<void>{

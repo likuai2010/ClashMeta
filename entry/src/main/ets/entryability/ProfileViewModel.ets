@@ -1,7 +1,6 @@
 import { Profile, ProfileRepo, ProfileType } from './ProfileRepo'
 import { common } from '@kit.AbilityKit'
 import fs from '@ohos.file.fs'
-import { nativeFetchAndValid, nativeInit,} from 'libentry.so'
 import { promptAction } from '@kit.ArkUI'
 import { Selection, SelectionRepo } from './SelectionRepo'
 import { fileUri } from '@kit.CoreFileKit'
@@ -50,17 +49,6 @@ export class ProfileViewModel{
   }
   async  updateSelection(select: Selection){
     await this.selectionRepo.addOrUpdate(select)
-  }
-
-  async testSelection(){
-    await this.updateSelection(new Selection("testId", "proxy", "node"))
-    let dd = await this.getSelection("testId")
-    promptAction.showToast({message: `测试数据读写: ${JSON.stringify(dd)}`})
-  }
-  async testIConSelection(){
-    await this.updateSelection(new Selection("testId2", '🚀 节点选择', '♻️ 自动选择'))
-    let dd = await this.getSelection("testId2")
-    promptAction.showToast({message: `测试数据读写: ${JSON.stringify(dd)}`})
   }
 
   async updateProfile(profile:Profile){
@@ -112,27 +100,21 @@ export class ProfileViewModel{
       return false
     }
   }
-  async loadConfig(targetUri:string): Promise<string>{
-    let configPath =  this.context?.tempDir + "/config.yaml"
-
-    return configPath;
-  }
 
   async download(configPath:string, url: string, force: boolean, onUpdate:(value:FetchStatus)=>void): Promise<boolean>{
     return new Promise((resolve, reject)=>{
-      nativeFetchAndValid(configPath, url, force, (type:string, value:string)=>{
+      SocketProxyService.fetchAndValid(configPath, url, force, (type:string, value: string)=>{
         if (type == "fetch_complete"){
-            if(value != ""){
-              console.log("nativeFetchAndValid " + type + ":", value);
-              promptAction.showToast({message: `下载失败: ${value}`, duration:3000 })
+          if(value != ""){
+            promptAction.showToast({message: `下载失败: ${value}`, duration:3000 })
+            resolve(false)
+          } else {
+            if(fs.accessSync(configPath + "/config.yaml")){
               resolve(true)
-            } else {
-              if(fs.accessSync(configPath + "/config.yaml")){
-                resolve(true)
-              }else{
-                resolve(false)
-              }
+            }else{
+              resolve(false)
             }
+          }
         }else {
           console.log("nativeFetchAndValid " + type + ":", value);
           let status = JSON.parse(value.trim()) as FetchStatus

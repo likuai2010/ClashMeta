@@ -11,15 +11,10 @@ import { Profile } from '../entryability/ProfileRepo';
 import { LogsPage } from './LogsPage';
 import logger from '../pages/logs';
 import { promptAction } from '@kit.ArkUI';
-import { ClashVpnService } from '../entryability/ClashVpnService';
 import { ProviderPage } from './ProviderPage';
 import { ConfigViewer } from './ConfigViewer';
 
-let want: Want = {
-  deviceId: "",
-  bundleName: "com.xiaobai.clash",
-  abilityName: "ClashVpnAbility",
-};
+
 
 @Builder
 function PageRouter(name: string, params:string) {
@@ -57,15 +52,6 @@ struct Index {
   async aboutToAppear(): Promise<void> {
     this.profile = await profileViewModel.getActive()
     clashProxyService.init(getContext(this))
-    // let result = await clashProxyService.start(getContext(this) as common.UIAbilityContext)
-    // this.running = result
-     //  clashViewModel.init(getContext(this))
-     // clashViewModel.load()
-    // this.routerInfos.setInterception({
-    //   willShow: async (from: NavDestinationContext | "navBar", to: NavDestinationContext | "navBar",
-    //     operation: NavigationOperation, animated: boolean) => {
-    //   }
-    // })
   }
 
   async startVpn(){
@@ -77,32 +63,19 @@ struct Index {
       promptAction.showToast({message:"没有选择配置文件"})
       return
     }
-    await vpnExtension.startVpnExtensionAbility(want);
-    this.running  = true
-    this.loading = true
-    profileViewModel.running = true
-    setTimeout(async ()=>{
-      this.loading = false;
-    },1000)
 
+    this.loading = true
+    let result = await clashProxyService.startClash()
+    this.loading = false;
+    this.running  = result
+    profileViewModel.running = result
   }
   async stopVpn(){
     this.running = false
-    await vpnExtension.stopVpnExtensionAbility(want)
+    await clashProxyService.stopClash()
     profileViewModel.running = false
   }
   scroller: Scroller = new Scroller();
-
-  async testVpn(){
-    const clashVpnService = new ClashVpnService(await profileViewModel.getHome());
-    const profile = await profileViewModel.getActive()
-    if (profile != undefined){
-      let configPath = await profileViewModel.getConfigPath(profile)
-      clashVpnService.StartVpn(configPath, getContext(this), [])
-    }else{
-      logger.log("ClashVPN", `配置文件 没有加载 `);
-    }
-  }
 
   build() {
     Navigation(this.routerInfos) {
@@ -129,18 +102,19 @@ struct Index {
                 }
               }})
             }
-            if(this.running){
-              ActionLabel({title:"外部资源", icon:"ic_baseline_extension", click:()=>{
-                if(!this.loading){
-                  this.routerInfos.pushPath({name:"ProviderPage"})
-                }
-              }})
-              ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
-                if(!this.loading){
-                  this.routerInfos.pushPath({name: "LogsPage"})
-                }
-              }})
-            }
+            ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
+              this.routerInfos.pushPath({name:"configs"})
+            }})
+            ActionLabel({title:"外部资源", icon:"ic_baseline_extension", click:()=>{
+              if(!this.loading){
+                this.routerInfos.pushPath({name:"ProviderPage"})
+              }
+            }})
+            ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
+              if(!this.loading){
+                this.routerInfos.pushPath({name: "LogsPage"})
+              }
+            }})
             ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
               this.routerInfos.pushPath({ name: "settings" })
             }})

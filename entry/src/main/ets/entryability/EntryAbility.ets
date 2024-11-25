@@ -3,6 +3,7 @@ import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import profileViewModel from '../entryability/ProfileViewModel';
 import { nativeInit } from 'libentry.so';
+import { vpnExtension } from '@kit.NetworkKit';
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -11,6 +12,15 @@ export default class EntryAbility extends UIAbility {
   }
   async  init(){
     await profileViewModel.init(this.context)
+    try {
+      await vpnExtension.startVpnExtensionAbility({
+        deviceId: "",
+        bundleName: "com.xiaobai.clash",
+        abilityName: "ClashVpnAbility",
+      });
+    } catch (e) {
+      this.context.terminateSelf()
+    }
     //nativeInit(await profileViewModel.getHome(),"1.0.0")
   }
 

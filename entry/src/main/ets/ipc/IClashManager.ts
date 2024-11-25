@@ -33,7 +33,9 @@ export enum ClashRpcType{
   setLogObserver = 12,
   queryConfiguration = 13,
   load = 14,
-  vpnStarted = 15
+  startClash = 15,
+  stopClash = 16,
+  fetchAndValid = 17,
 }
 export interface IClashManager {
   queryTunnelState(): Promise<TunnelState>;
