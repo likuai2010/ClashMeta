@@ -69,10 +69,10 @@ enum LogMessageLevel {
 }
 
 export interface ConfigurationOverride {
-  prot?: number;
+  port?: number;
   "socks-port"?: number;
   redirectPort?: number;
-  tproxyPort?: number;
+  proxyPort?: number;
   mixedPort?: number;
   authentication?: string[];
   allowLan?: boolean;
@@ -159,7 +159,7 @@ export class ClashViewModel{
     console.debug("testTag queryOverride", JSON.stringify(config))
     return {
       redirectPort: config.redirectPort,
-      tproxyPort: config.tproxyPort,
+      proxyPort: config.proxyPort,
       mixedPort: config.mixedPort,
       authentication: config.authentication,
       allowLan: config.allowLan,

@@ -2,6 +2,8 @@ import { ActionLabel } from './compoments/common'
 import { common, Want } from '@kit.AbilityKit'
 import { hilog } from '@kit.PerformanceAnalysisKit'
 import { rpc } from '@kit.IPCKit'
+import SocketProxyService from '../rpc/SocketProxyService'
+import { OverrideSlot } from '../entryability/ClashViewModel'
 
 
 @Component
@@ -28,6 +30,14 @@ export struct NetworkSettingsPage {
 @Component
 export struct SettingsPage {
   @Consume('router') routerInfos: NavPathStack
+  async aboutToAppear(): Promise<void> {
+    let configs = await SocketProxyService.queryConfiguration()
+    console.log("SettingsPage ", configs)
+    let config = SocketProxyService.queryOverride(OverrideSlot.Persist)
+
+    SocketProxyService.patchOverride(OverrideSlot, new Conf)
+    console.log("SettingsPage ", config)
+  }
   build() {
     NavDestination() {
       Column() {
