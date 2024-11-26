@@ -1,5 +1,5 @@
 import { vpnExtension } from '@kit.NetworkKit';
-import { common, Want } from '@kit.AbilityKit';
+import { bundleManager, common, Want } from '@kit.AbilityKit';
 import { Icon } from './compoments/icons';
 import { ActionCard,  ActionLabel } from './compoments/common';
 import { ConfigItem, MetaFeaturesPage, NetworkSettingsPage, patchSniffer, SettingsPage } from './SettingsPage';
@@ -14,7 +14,7 @@ import { ProviderPage } from './ProviderPage';
 import { ConfigViewer } from './ConfigViewer';
 import { ConfigItemEdit } from './ConfigItemEdit';
 import { JSON } from '@kit.ArkTS';
-import { Dns, OverrideSlot, Sniffer } from '../entryability/ClashViewModel';
+import { BusinessError } from '@kit.BasicServicesKit';
 
 
 @Builder
@@ -57,10 +57,17 @@ struct Index {
   @State running: boolean = false;
   @State loading: boolean = false;
   @State profile: Profile | undefined = undefined
+  @State version: string = ""
   async aboutToAppear(): Promise<void> {
     this.profile = await profileViewModel.getActive()
     clashProxyService.init(getContext(this))
-
+    bundleManager.getBundleInfoForSelf(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION).then((bundleInfo)=>{
+      let versionName = bundleInfo.versionName;//应用版本名
+      let versionNo = bundleInfo.versionCode;//应用版本号
+      this.version = `${versionName}(${versionNo})`
+    }).catch((error: BusinessError)=>{
+      console.error("get bundleInfo failed,error is "+error)
+    })
   }
 
   async startVpn(){
@@ -132,7 +139,7 @@ struct Index {
               await patchSniffer(this.compatibilityModel)
               this.routerInfos.pushPath({ name: "settings" })
             }})
-            // ActionLabel({title:"关于", icon:"ic_baseline_info"})
+            ActionLabel({title:"关于",subTitle:this.version, icon:"ic_baseline_info"})
             // Text(this.message)
             //   .fontSize(50)
             //   .fontWeight(FontWeight.Bold)
