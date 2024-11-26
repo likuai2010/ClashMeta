@@ -2,18 +2,19 @@ import { vpnExtension } from '@kit.NetworkKit';
 import { common, Want } from '@kit.AbilityKit';
 import { Icon } from './compoments/icons';
 import { ActionCard,  ActionLabel } from './compoments/common';
-import { NetworkSettingsPage, SettingsPage } from './SettingsPage';
+import { ConfigItem, MetaFeaturesPage, NetworkSettingsPage, patchSniffer, SettingsPage } from './SettingsPage';
 import { ConfigEditPage, ConfigsPage } from './ConfigEditPage';
 import { ProxysPage } from './ProxyPage';
 import profileViewModel, { ProfileViewModel } from '../entryability/ProfileViewModel';
-import clashProxyService from '../rpc/SocketProxyService';
+import clashProxyService, { SocketProxyService } from '../rpc/SocketProxyService';
 import { Profile } from '../entryability/ProfileRepo';
 import { LogsPage } from './LogsPage';
-import logger from '../pages/logs';
 import { promptAction } from '@kit.ArkUI';
 import { ProviderPage } from './ProviderPage';
 import { ConfigViewer } from './ConfigViewer';
-
+import { ConfigItemEdit } from './ConfigItemEdit';
+import { JSON } from '@kit.ArkTS';
+import { Dns, OverrideSlot, Sniffer } from '../entryability/ClashViewModel';
 
 
 @Builder
@@ -36,6 +37,13 @@ function PageRouter(name: string, params:string) {
     LogsPage()
   } else if (name === "ProviderPage") {
     ProviderPage()
+  }else if (name === "MetaFeaturesPage") {
+    MetaFeaturesPage()
+  }else if (name === "BaseSettingsPage") {
+    MetaFeaturesPage()
+  }
+  else if (name === "ConfigItemEdit") {
+    ConfigItemEdit({config: JSON.parse(params) as ConfigItem})
   }
 }
 
@@ -43,7 +51,7 @@ function PageRouter(name: string, params:string) {
 @Entry
 @Component
 struct Index {
-
+  @StorageLink('compatibilityModel') compatibilityModel: boolean = true
   vpnConnection = vpnExtension.createVpnConnection(getContext(this) as common.VpnExtensionContext);
   @Provide('router') routerInfos: NavPathStack = new NavPathStack()
   @State running: boolean = false;
@@ -52,15 +60,18 @@ struct Index {
   async aboutToAppear(): Promise<void> {
     this.profile = await profileViewModel.getActive()
     clashProxyService.init(getContext(this))
+
   }
 
   async startVpn(){
-    logger.clear()
-    logger.log("index","开启vpn后台服务")
+
     let profile = await profileViewModel.getActive()
     this.profile = profile
     if(!profile){
       promptAction.showToast({message:"没有选择配置文件"})
+      return
+    }
+    if(this.loading){
       return
     }
 
@@ -77,6 +88,7 @@ struct Index {
   }
   scroller: Scroller = new Scroller();
 
+
   build() {
     Navigation(this.routerInfos) {
       List() {
@@ -88,6 +100,7 @@ struct Index {
             }.padding({ top: 20 })
             if(!this.running){
               ActionCard({title:"已停止", value: "点击启动", loading: this.loading, isRunning: this.running, icon:"ic_outline_not_interested", click: async ()=>{
+                await patchSniffer(this.compatibilityModel)
                 this.startVpn()
               } })
             }else{
@@ -105,17 +118,18 @@ struct Index {
             ActionCard({title:"配置", value: !this.profile ? "未选择": this.profile.name, icon:"ic_baseline_view_list", click:()=>{
               this.routerInfos.pushPath({name:"configs"})
             }})
-            ActionLabel({title:"外部资源", icon:"ic_baseline_extension", click:()=>{
+            ActionLabel({title:"外部资源", icon:"ic_baseline_extension", change:()=>{
               if(!this.loading){
                 this.routerInfos.pushPath({name:"ProviderPage"})
               }
             }})
-            ActionLabel({title:"日志", icon:"ic_baseline_view_list", click:()=>{
+            ActionLabel({title:"日志", icon:"ic_baseline_view_list", change:()=>{
               if(!this.loading){
                 this.routerInfos.pushPath({name: "LogsPage"})
               }
             }})
-            ActionLabel({title:"设置", icon:"ic_baseline_settings", click:()=>{
+            ActionLabel({title:"设置", icon:"ic_baseline_settings", change: async ()=>{
+              await patchSniffer(this.compatibilityModel)
               this.routerInfos.pushPath({ name: "settings" })
             }})
             // ActionLabel({title:"关于", icon:"ic_baseline_info"})

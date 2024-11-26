@@ -9,15 +9,10 @@ export struct ConfigViewer {
   @State content: string = ""
   configPath: string = ""
   aboutToAppear(): void {
-    let params = this.routerInfos.getParamByName("config-viewer") as string[]
-    const configPath = params[0]
-    if (configPath != undefined){
-      this.configPath = configPath
-    }
     fs.access(this.configPath).then((res)=>{
       if(res){
         this.content = readConfig(this.configPath)
-      }else{
+      } else {
         promptAction.showToast({message:"文件不存在:" + this.configPath})
       }
     })
@@ -41,7 +36,7 @@ export struct ConfigViewer {
           this.routerInfos.pop()
         }
       })
-    }else{
+    } else {
       this.routerInfos.pop()
     }
   }

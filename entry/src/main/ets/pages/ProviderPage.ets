@@ -2,8 +2,8 @@ import SocketProxyService from "../rpc/SocketProxyService"
 import {  Provider,  } from '../ipc/IClashManager';
 import { Icon } from "./compoments/icons";
 import { emitter } from "@kit.BasicServicesKit";
+import { EventIds } from "../rpc/EventConstants";
 
-const allFetch = 10002
 @Component
 export struct ProviderPage {
   @Builder
@@ -57,7 +57,7 @@ export struct ProviderItem {
     return time ;
   }
   aboutToAppear(): void {
-    emitter.on({eventId: allFetch}, ()=>{
+    emitter.on({eventId: EventIds.AllFetch}, ()=>{
       this.fetchProvider()
     })
   }

@@ -61,7 +61,7 @@ export struct ActionLabel {
   icon: string = "ic_baseline_more_vert"
   color: Color | string = Color.Black
   @State isSwitch?: boolean = undefined
-  click?: ()=>void
+  change?: (bool: boolean | undefined) => void
   build() {
     Row(){
       Icon({icon:$r(`app.media.${this.icon}`), iconColor: this.color})
@@ -73,14 +73,16 @@ export struct ActionLabel {
         }
       }.padding(10).alignItems(HorizontalAlign.Start).layoutWeight(1)
       if (this.isSwitch != undefined){
-        Toggle( { type: ToggleType.Switch, isOn: this.isSwitch })
+        Toggle( { type: ToggleType.Switch, isOn: this.isSwitch }).onChange((value)=>{
+          this.change?.(value)
+        })
       }
     }.alignItems(VerticalAlign.Center).margin({left:10, right: 10, top:5, bottom:5}).onClick(()=>{
       if(this.isSwitch != undefined){
         this.isSwitch = !this.isSwitch
       }
-      if (this.click)
-        this.click()
+      if (this.change)
+        this.change(this.isSwitch)
     })
   }
 }

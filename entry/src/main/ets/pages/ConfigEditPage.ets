@@ -7,7 +7,8 @@ import profileViewModel, { FetchStatus } from '../entryability/ProfileViewModel'
 import { JSON } from '@kit.ArkTS'
 import { promptAction } from '@kit.ArkUI'
 import { emitter } from '@kit.BasicServicesKit'
-const fetchStatusChange = 11111
+import { EventIds } from '../rpc/EventConstants'
+
 @Component
 export struct ConfigEditPage {
   @Consume('router') routerInfos: NavPathStack
@@ -32,7 +33,7 @@ export struct ConfigEditPage {
     try {
       this.dialogController?.open()
       const result = await profileViewModel.addProfile(this.pending, (status)=>{
-        emitter.emit({eventId:fetchStatusChange},{data:status})
+        emitter.emit({eventId:EventIds.FetchStatusChange},{data:status})
       })
       this.dialogController?.close()
       if(result)
@@ -77,7 +78,7 @@ export struct ConfigEditPage {
             this.pending.interval = 0
           }
         } })
-        ActionLabel({title: "浏览文件", icon: "ic_outline_folder", click:()=>{
+        ActionLabel({title: "浏览文件", icon: "ic_outline_folder", change: ()=>{
           let filePicker = new picker.DocumentViewPicker(getContext(this))
           let options = new picker.DocumentSelectOptions()
           filePicker.select(options).then((documentSelectResult)=>{
@@ -155,7 +156,7 @@ export struct Loading {
   controller: CustomDialogController
   aboutToAppear(): void {
     emitter.on({
-      eventId: fetchStatusChange,
+      eventId: EventIds.FetchStatusChange,
     }, (eventData)=>{
       if (eventData.data)
         this.fetchStatus = eventData.data as FetchStatus
@@ -188,16 +189,16 @@ struct ConfigItem {
   ConfigOption(){
     Column(){
       Blank().height(30)
-      ActionLabel({ title:"查看配置", icon:"ic_baseline_edit", click: async ()=>{
+      ActionLabel({ title:"查看配置", icon:"ic_baseline_edit", change: async ()=>{
         this.showSheet = false
         const configPath = await profileViewModel.getConfigPath(this.profile) + "/config.yaml"
         this.routerInfos.pushPath({name:"config-viewer", param: configPath})
       }})
-      ActionLabel({ title:"编辑", icon:"ic_baseline_edit", click:()=>{
+      ActionLabel({ title:"编辑", icon:"ic_baseline_edit", change:()=>{
         this.showSheet = false
         this.routerInfos.pushPath({name:"config-edit", param:this.profile.uuid})
       }})
-      ActionLabel({ title:"删除" , icon:"ic_outline_delete", color: Color.Red, click:()=>{
+      ActionLabel({ title:"删除" , icon:"ic_outline_delete", color: Color.Red, change:()=>{
          if(this.onDelete)
            this.onDelete()
           this.showSheet = false

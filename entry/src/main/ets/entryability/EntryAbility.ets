@@ -23,36 +23,8 @@ export default class EntryAbility extends UIAbility {
       console.error("init vpn service", e.message | e)
       this.context.terminateSelf()
     }
-    setTimeout(()=>{
-       this.patch()
-    }, 500)
   }
-  async patch(){
-    let config = await SocketProxyService.queryOverride(OverrideSlot.Persist)
-    config.dns = {
-      enable: true,
-      "use-hosts": true
-    } as Dns
-    config.sniffer = {
-      enable: true,
-      "force-dns-mapping": true,
-      "parse-pure-ip": true,
-      "override-destination": true,
-      "sniff":{
-        "HTTP": {
-          ports:["80","8080-8880"],
-          "override-destination":true
-        },
-        "TLS": {
-          ports:["443","8443"]
-        },
-        "QUIC":{
-          ports:["443","8443"]
-        }
-      },
-    } as Sniffer
-    SocketProxyService.patchOverride(OverrideSlot.Persist, config)
-  }
+
 
   onDestroy(): void {
     hilog.info(0x0000, 'testTag', '%{public}s', 'Ability onDestroy');
@@ -68,6 +40,7 @@ export default class EntryAbility extends UIAbility {
         return;
       }
       PersistentStorage.persistProp('lastGroupName', "");
+      PersistentStorage.persistProp('compatibilityModel', true);
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
     });
   }
