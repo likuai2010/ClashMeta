@@ -223,9 +223,6 @@ export struct SettingsPage {
   build() {
     NavDestination() {
       Column() {
-        ActionLabel({ title:"覆写", icon:"ic_baseline_extension", change:()=>{
-          this.routerInfos.pushPath({name:"BaseSettingsPage"})
-        }})
         ActionLabel({ title:"Meta Features", icon:"ic_baseline_meta", change:()=>{
           this.routerInfos.pushPath({name:"MetaFeaturesPage"})
         }})

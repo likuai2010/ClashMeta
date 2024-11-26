@@ -97,20 +97,45 @@ class LogsSource extends  BasicDataSource {
 @Component
 export struct LogsPage {
   @Consume('router') routerInfos: NavPathStack
+  @StorageLink('setLogObserver') setLogObserver: boolean = true
   @State content: string = ""
   @State logs: LogInfo[] = []
   private data: LogsSource = new LogsSource();
   configPath: string = ""
-  aboutToAppear(): void {
+  logHandler: ()=>void = ()=>{}
+  @Builder
+  logsMenu(){
+    Row(){
+      Toggle( { type: ToggleType.Switch, isOn: this.setLogObserver }).onChange(async (value)=>{
+        this.setLogObserver =value
+        if(this.setLogObserver){
+          this.logHandler = await SocketProxyService.setLogObserver((v)=>{
+            try {
+              this.data.pushData(JSON.parse(v))
+            } catch (e) {
+              console.log("setLogObserver faile", v, e)
+            }
+          })
+        }else{
+          this.logHandler()
+        }
+      })
+    }.padding(10)
+  }
+
+  async  aboutToAppear(): Promise<void> {
     this.logs = []
     let i=0;
-    SocketProxyService.setLogObserver((v)=>{
-      try {
-        this.data.pushData(JSON.parse(v))
-      } catch (e) {
-        console.log("setLogObserver faile", v, e)
-      }
-    })
+    if(this.setLogObserver){
+      this.logHandler = await SocketProxyService.setLogObserver((v)=>{
+        try {
+          this.data.pushData(JSON.parse(v))
+        } catch (e) {
+          console.log("setLogObserver faile", v, e)
+        }
+      })
+    }
+
   }
   build() {
     NavDestination() {
@@ -129,7 +154,7 @@ export struct LogsPage {
          }, (item: string) => item)
        }.reverse(true)
       }.align(Alignment.Top).height('100%')
-    }.title("日志").backgroundColor(Color.White)
+    }.title("日志").menus(this.logsMenu).backgroundColor(Color.White)
   }
 }
 export function readConfig(filePath: string): string {

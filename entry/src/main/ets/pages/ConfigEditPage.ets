@@ -100,11 +100,11 @@ export  struct ConfigsPage {
   @Builder
   MoreMenu(){
     Row(){
-      Icon({
-        icon:$r("app.media.ic_baseline_replay"),
-      }).onClick(()=>{
-
-      })
+      // Icon({
+      //   icon:$r("app.media.ic_baseline_replay"),
+      // }).onClick(()=>{
+      //
+      // })
       Icon({
         icon:$r("app.media.ic_baseline_add")
       }).onClick(()=>{
@@ -225,7 +225,7 @@ struct ConfigItem {
         Blank().height(8)
         Text(this.profile.type  == 1 ? "URL":"File")
       }.padding(10).alignItems(HorizontalAlign.Start).layoutWeight(1)
-      Text("3 min ago")
+      Text(new Date(this.profile.createAt).toLocaleString()).fontSize(12)
       Icon({icon:$r("app.media.ic_baseline_more_vert")}).bindSheet(this.showSheet, this.ConfigOption, {height: 250, dragBar: true, shouldDismiss:()=>{
         this.showSheet = false
       } }).onClick(()=>{

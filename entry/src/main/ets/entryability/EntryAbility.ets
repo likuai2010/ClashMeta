@@ -41,6 +41,7 @@ export default class EntryAbility extends UIAbility {
       }
       PersistentStorage.persistProp('lastGroupName', "");
       PersistentStorage.persistProp('compatibilityModel', true);
+      PersistentStorage.persistProp('setLogObserver', false);
       hilog.info(0x0000, 'testTag', 'Succeeded in loading the content.');
     });
   }

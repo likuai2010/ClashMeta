@@ -7,6 +7,7 @@ import { ConfigurationOverride,
   ProxyGroup, ProxySort, TunnelState } from '../entryability/ClashViewModel';
 import { common } from '@kit.AbilityKit';
 import { FetchStatus } from '../entryability/ProfileViewModel';
+import { promptAction } from '@kit.ArkUI';
 
 interface FetchInfo{
   type: string
@@ -106,12 +107,19 @@ export class  SocketProxyService implements IClashManager{
     let client: socket.LocalSocket = socket.constructLocalSocketInstance();
     console.log("socketService sendMessageRequest" )
     return new Promise(async (resolve, reject)=>{
-      client.on('message', (value: socket.LocalSocketMessageInfo) => {
+      client.on('message', async (value: socket.LocalSocketMessageInfo) => {
         let text = new util.TextDecoder()
-        let json = JSON.parse(text.decodeToString(new Uint8Array(value.message))) as RpcResult
-        console.log("socketService proxy callack", json.result)
-        resolve(json.result)
-        client.close();
+        console.log("socketService proxy callack", value.message.byteLength, value.size)
+        let result = text.decodeToString(new Uint8Array(value.message))
+        try {
+          let json = JSON.parse(result) as RpcResult
+          resolve(json.result)
+          client.close();
+        } catch (e) {
+          console.log("socketService proxy callack", result)
+          resolve("")
+          promptAction.showToast({ message: e.message || e, duration: 2000})
+        }
       })
       client.on("error", ()=>{
         console.log("socketService proxy error" )

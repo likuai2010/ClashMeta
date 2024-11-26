@@ -97,6 +97,7 @@ export class ProfileRepo{
   async addOrUpdate(details: Profile) {
     const predicates = new relationalStore.RdbPredicates('Profiles')
     predicates.equalTo('uuid', details.uuid);
+
     const old = await this.store!.query(predicates)
     const input: ValuesBucket = {
       uuid: details.uuid,
@@ -112,8 +113,10 @@ export class ProfileRepo{
       createAt: details.createAt,
       updatedAt: details.updatedAt
     }
-    if (old.rowCount > 0)
+    if (old.rowCount > 0){
+      input.updatedAt = new Date().getTime()
       this.store!.update(input, predicates)
+    }
     else
       this.store!.insert("Profiles", input)
   }

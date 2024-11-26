@@ -105,8 +105,13 @@ export class ProfileViewModel{
       SocketProxyService.fetchAndValid(configPath, url, force, (type:string, value: string)=>{
         if (type == "fetch_complete"){
           if(value != ""){
-            promptAction.showToast({message: `下载失败: ${value}`, duration:3000 })
-            resolve(false)
+            if(fs.accessSync(configPath + "/config.yaml")){
+              promptAction.showToast({message: `警告: ${value}`, duration:3000 })
+              resolve(true)
+            }else{
+              promptAction.showToast({message: `下载失败: ${value}`, duration:3000 })
+              resolve(false)
+            }
           } else {
             if(fs.accessSync(configPath + "/config.yaml")){
               resolve(true)
