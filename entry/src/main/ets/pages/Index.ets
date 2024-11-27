@@ -1,5 +1,5 @@
 import { vpnExtension } from '@kit.NetworkKit';
-import { bundleManager, common, Want } from '@kit.AbilityKit';
+import { bundleManager, common, Want, WantAgent, wantAgent } from '@kit.AbilityKit';
 import { Icon } from './compoments/icons';
 import { ActionCard,  ActionLabel } from './compoments/common';
 import { ConfigItem, MetaFeaturesPage, NetworkSettingsPage, patchSniffer, SettingsPage } from './SettingsPage';
@@ -15,8 +15,9 @@ import { ConfigViewer } from './ConfigViewer';
 import { ConfigItemEdit } from './ConfigItemEdit';
 import { JSON } from '@kit.ArkTS';
 import { BusinessError } from '@kit.BasicServicesKit';
-
-
+import { backgroundTaskManager } from '@kit.BackgroundTasksKit';
+import { notificationManager } from '@kit.NotificationKit';
+import http from '@ohos.net.http';
 @Builder
 function PageRouter(name: string, params:string) {
   if (name === "proxys") {
@@ -69,9 +70,8 @@ struct Index {
       console.error("get bundleInfo failed,error is "+error)
     })
   }
-
+  job: number = 0
   async startVpn(){
-
     let profile = await profileViewModel.getActive()
     this.profile = profile
     if(!profile){
@@ -81,12 +81,25 @@ struct Index {
     if(this.loading){
       return
     }
-
     this.loading = true
     let result = await clashProxyService.startClash()
     this.loading = false;
     this.running  = result
     profileViewModel.running = result
+    if(result){
+      let id = await this.startContinuousTask()
+      this.updateProcess(id)
+      let i = 0
+      let htt = http.createHttp()
+      clearInterval(this.job)
+      this.job = setInterval(()=> {
+        i += 1;
+        console.log("updateProcess ", 1);
+        htt.request("https://baidu.com")
+        this.updateProcess(id)
+      }, 30000)
+    }
+
   }
   async stopVpn(){
     if(this.loading){
@@ -101,7 +114,70 @@ struct Index {
     this.loading = false
     this.running = false
     profileViewModel.running = false
+    backgroundTaskManager.stopBackgroundRunning(getContext(this))
   }
+  async  startContinuousTask(): Promise<number>{
+    let wantAgentInfo: wantAgent.WantAgentInfo = {
+      // 点击通知后，将要执行的动作列表
+      // 添加需要被拉起应用的bundleName和abilityName
+      wants: [
+        {
+          bundleName: "com.xiaobai.clash",
+          abilityName: "EntryAbility"
+        }
+      ],
+      // 指定点击通知栏消息后的动作是拉起ability
+      actionType: wantAgent.OperationType.START_ABILITY,
+      // 使用者自定义的一个私有值
+      requestCode: 0,
+      // 点击通知后，动作执行属性
+      actionFlags: [wantAgent.WantAgentFlags.UPDATE_PRESENT_FLAG]
+    };
+    // 通过wantAgent模块下getWantAgent方法获取WantAgent对象
+    try {
+      let wantAgentObj: WantAgent =  await wantAgent.getWantAgent(wantAgentInfo)
+      let list: Array<string> = ["dataTransfer"];
+      let res: backgroundTaskManager.ContinuousTaskNotification = await backgroundTaskManager.startBackgroundRunning(getContext(this), list, wantAgentObj)
+      return res.notificationId
+    } catch (err) {
+      console.error(`Failed to operation startBackgroundRunning. Code is ${err.code}, message is ${err.message}`);
+      return -1
+    }
+  }
+  updateProcess(id: number){
+    let downLoadTemplate: notificationManager.NotificationTemplate = {
+      name: 'downloadTemplate', // 当前只支持downloadTemplate，保持不变
+      data: {
+        title: '正在运行', // 必填。
+        fileName: (Math.random() * 100).toFixed(2)+ ' bytes', // 必填。
+        progressValue: (Math.random() * 100), // 应用更新进度值，自定义。
+      }
+    };
+    let request: notificationManager.NotificationRequest = {
+      content: {
+        // 系统实况类型，保持不变
+        notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_SYSTEM_LIVE_VIEW,
+        systemLiveView: {
+          typeCode: 8, // 上传下载类型需要填写 8，当前仅支持此类型。保持不变
+          title: "test", // 应用自定义
+          text: "test", // 应用自定义
+        }
+      },
+      id: id, // 必须是申请长时任务返回的id，否则应用更新通知失败。
+      notificationSlotType: notificationManager.SlotType.LIVE_VIEW, // 实况窗类型，保持不变
+      template: downLoadTemplate // 应用需要设置的模版名称
+    };
+    try {
+      notificationManager.publish(request).then(() => {
+        console.info("publish success, id= " + this.id);
+      }).catch((err: BusinessError) => {
+        console.error(`publish fail: ${JSON.stringify(err)}`);
+      });
+    } catch (err) {
+      console.error(`publish fail: ${JSON.stringify(err)}`);
+    }
+  }
+
   scroller: Scroller = new Scroller();
 
 
@@ -175,4 +251,3 @@ struct Index {
     }.navDestination(PageRouter).mode(NavigationMode.Stack)
   }
 }
-

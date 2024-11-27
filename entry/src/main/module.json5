@@ -10,7 +10,9 @@
       "2in1"
     ],
     "requestPermissions": [{
-      "name" : "ohos.permission.INTERNET"
+      "name" : "ohos.permission.INTERNET",
+    },{
+      "name": "ohos.permission.KEEP_BACKGROUND_RUNNING"
     }],
     "deliveryWithInstall": true,
     "installationFree": false,
@@ -26,6 +28,10 @@
         "startWindowIcon": "$media:logo",
         "startWindowBackground": "$color:start_window_background",
         "exported": true,
+        "backgroundModes": [
+          // 长时任务类型的配置项
+          "dataTransfer"
+        ],
         "skills": [
           {
             "entities": [

@@ -84,7 +84,7 @@ export class  SocketProxyService implements IClashManager{
   }
 
   async patchOverride(slot: OverrideSlot, configuration: ConfigurationOverride): Promise<void> {
-    await this.sendMessageRequest(ClashRpcType.patchOverride,[ slot as numdber, JSON.stringify(configuration) ])
+    await this.sendMessageRequest(ClashRpcType.patchOverride,[ slot , JSON.stringify(configuration) ])
     return
   }
 
@@ -108,21 +108,19 @@ export class  SocketProxyService implements IClashManager{
     method: number,
     params: (string| number | boolean) [] = []
   ): Promise<string| number | boolean | undefined>{
-    let client: socket.LocalSocket = socket.constructLocalSocketInstance();
-    console.log("socketService sendMessageRequest" )
     return new Promise(async (resolve, reject)=>{
+      let client: socket.LocalSocket = socket.constructLocalSocketInstance();
+      let messageBuffer = ""
       client.on('message', async (value: socket.LocalSocketMessageInfo) => {
         let text = new util.TextDecoder()
-        console.log("socketService proxy callack", value.message.byteLength, value.size)
+        console.log("socketService proxy callack",  value.message.byteLength, value.size)
         let result = text.decodeToString(new Uint8Array(value.message))
         try {
-          let json = JSON.parse(result) as RpcResult
+          let json = JSON.parse(messageBuffer + result) as RpcResult
           resolve(json.result)
           client.close();
         } catch (e) {
-          console.log("socketService proxy callack", result)
-          resolve("")
-          promptAction.showToast({ message: e.message || e, duration: 2000})
+          messageBuffer += result
         }
       })
       client.on("error", ()=>{
@@ -130,7 +128,8 @@ export class  SocketProxyService implements IClashManager{
         reject("失败")
       })
       const socketPath = this.context?.filesDir + '/ipc_socket'
-      client.connect({address: { address: socketPath }, timeout:3000}).then(()=>{
+
+      client.connect({address: { address: socketPath }, timeout:1000}).then(async ()=>{
         client.send({ data: JSON.stringify({method, params}) });
       }).catch((e:Error)=>{
         console.log("socketService error", e.message)
