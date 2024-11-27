@@ -89,12 +89,13 @@ struct Index {
     if(result){
       let id = await this.startContinuousTask()
       this.updateProcess(id)
-      let i = 0
+      console.log("updateProcess ", result);
       let htt = http.createHttp()
       clearInterval(this.job)
-      this.job = setInterval(()=> {
-        i += 1;
-        console.log("updateProcess ", 1);
+      this.job = setInterval(async ()=> {
+        let now = await clashProxyService.queryTrafficNow()
+        let result = await clashProxyService.queryTrafficTotal()
+        console.log("updateProcess ", now.trafficUpload(), now.trafficDownload());
         htt.request("https://baidu.com")
         this.updateProcess(id)
       }, 30000)

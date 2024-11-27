@@ -19,6 +19,7 @@ export enum VehicleType {
   Compatible = "Compatible"
 }
 export enum ClashRpcType{
+  queryTrafficNow = 0,
   queryTunnelState = 1,
   queryTrafficTotal = 2,
   queryProxyGroupNames = 3,
@@ -36,11 +37,10 @@ export enum ClashRpcType{
   startClash = 15,
   stopClash = 16,
   fetchAndValid = 17,
-  reset = 18
+  reset = 18,
 }
 export interface IClashManager {
   queryTunnelState(): Promise<TunnelState>;
-  queryTrafficTotal(): Promise<number>;
   queryProxyGroupNames(excludeNotSelectable: boolean): Promise<string[]>;
   queryProxyGroup(name: string, proxySort: ProxySort): Promise<ProxyGroup>;
   queryConfiguration(): Promise<string>;

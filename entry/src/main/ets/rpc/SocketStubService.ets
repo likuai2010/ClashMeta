@@ -13,6 +13,7 @@ import {
   nativeQueryConfiguration,
   nativeQueryGroup, nativeQueryGroupNames,
   nativeQueryProviders,
+  nativeQueryTrafficNow,
   nativeQueryTrafficTotal, nativeQueryTunnelState,
   nativeReadOverride,
   nativeReset,
@@ -65,6 +66,10 @@ export class  SocketStubService{
         }
         case ClashRpcType.queryTrafficTotal:{
           resolve(nativeQueryTrafficTotal())
+          break;
+        }
+        case ClashRpcType.queryTrafficNow:{
+          resolve(nativeQueryTrafficNow())
           break;
         }
         case ClashRpcType.queryProxyGroupNames:{

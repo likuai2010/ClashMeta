@@ -13,6 +13,61 @@ interface FetchInfo{
   type: string
   value: string
 }
+class Traffic {
+  private value: number;
+
+  constructor(value: number) {
+    this.value = value;
+  }
+
+  trafficUpload(): string {
+    return this.trafficString(this.scaleTraffic(this.value >>> 32));
+  }
+
+  trafficDownload(): string {
+    return this.trafficString(this.scaleTraffic(this.value & 0xFFFFFFFF));
+  }
+
+  trafficTotal(): string {
+    const upload = this.scaleTraffic(this.value >>> 32);
+    const download = this.scaleTraffic(this.value & 0xFFFFFFFF);
+
+    return this.trafficString(upload + download);
+  }
+
+  private trafficString(scaled: number): string {
+    if (scaled > 1024 * 1024 * 1024 * 100) {
+      const data = scaled / 1024 / 1024 / 1024;
+      return `${(data / 100).toFixed(2)} GiB`;
+    } else if (scaled > 1024 * 1024 * 100) {
+      const data = scaled / 1024 / 1024;
+      return `${(data / 100).toFixed(2)} MiB`;
+    } else if (scaled > 1024 * 100) {
+      const data = scaled / 1024;
+      return `${(data / 100).toFixed(2)} KiB`;
+    } else {
+      return `${scaled} Bytes`;
+    }
+  }
+
+  private scaleTraffic(value: number): number {
+    const type = (value >>> 30) & 0x3;
+    const data = value & 0x3FFFFFFF;
+
+    switch (type) {
+      case 0:
+        return data;
+      case 1:
+        return data * 1024;
+      case 2:
+        return data * 1024 * 1024;
+      case 3:
+        return data * 1024 * 1024 * 1024;
+      default:
+        throw new Error("Invalid value type");
+    }
+  }
+}
 export class  SocketProxyService implements IClashManager{
   context?: common.Context
   init(context: common.Context) {
@@ -32,16 +87,18 @@ export class  SocketProxyService implements IClashManager{
     await this.sendMessageRequest(ClashRpcType.load, [path])
   }
 
-
-
   async queryTunnelState(): Promise<TunnelState> {
     let result = await this.sendMessageRequest(ClashRpcType.queryTunnelState, [])
     return result as TunnelState;
   }
 
-  async queryTrafficTotal(): Promise<number> {
+  async queryTrafficTotal(): Promise<Traffic> {
     let result = await this.sendMessageRequest(ClashRpcType.queryTrafficTotal)
-    return result as number;
+    return new Traffic(result as number);
+  }
+  async queryTrafficNow(): Promise<Traffic> {
+    let result = await this.sendMessageRequest(ClashRpcType.queryTrafficNow)
+    return new Traffic(result as number);
   }
 
   async queryProxyGroupNames(excludeNotSelectable: boolean): Promise<string[]> {
