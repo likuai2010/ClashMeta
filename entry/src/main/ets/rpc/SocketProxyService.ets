@@ -84,7 +84,7 @@ export class  SocketProxyService implements IClashManager{
   }
 
   async patchOverride(slot: OverrideSlot, configuration: ConfigurationOverride): Promise<void> {
-    await this.sendMessageRequest(ClashRpcType.patchOverride,[slot as number,JSON.stringify(configuration) ])
+    await this.sendMessageRequest(ClashRpcType.patchOverride,[ slot as numdber, JSON.stringify(configuration) ])
     return
   }
 
@@ -97,6 +97,10 @@ export class  SocketProxyService implements IClashManager{
   }
   async stopClash():Promise<boolean>{
     let json = await this.sendMessageRequest(ClashRpcType.stopClash, [])
+    return json as boolean
+  }
+  async reset():Promise<boolean>{
+    let json = await this.sendMessageRequest(ClashRpcType.reset, [])
     return json as boolean
   }
 

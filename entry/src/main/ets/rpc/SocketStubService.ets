@@ -6,6 +6,7 @@ import { ClashRpcType } from '../ipc/IClashManager';
 import {
   nativeClearOverride,
   nativeFetchAndValid,
+  nativeForceGc,
   nativeHealthCheck,
   nativeLoad,
   nativePatchSelector,
@@ -14,12 +15,14 @@ import {
   nativeQueryProviders,
   nativeQueryTrafficTotal, nativeQueryTunnelState,
   nativeReadOverride,
+  nativeReset,
   nativeSubscribeLogcat,
   nativeUpdateProvider,
   nativeWriteOverride} from 'libentry.so';
 import { common } from '@kit.AbilityKit';
 import { ProfileViewModel } from '../entryability/ProfileViewModel';
 import { ClashVpnService } from '../entryability/ClashVpnService';
+import { OverrideSlot } from '../entryability/ClashViewModel';
 
 export class  SocketStubService{
   server: socket.LocalSocketServer = socket.constructLocalSocketServerInstance();
@@ -120,7 +123,14 @@ export class  SocketStubService{
           })
           break;
         }
+        case ClashRpcType.reset:{
+
+          resolve(true)
+          break;
+        }
         case ClashRpcType.startClash:{
+          nativeReset()
+          nativeClearOverride(OverrideSlot.Session)
           this.startVpn().then(()=>{
             resolve(true)
           }).catch((e:Error)=>{
@@ -129,11 +139,8 @@ export class  SocketStubService{
           break;
         }
         case ClashRpcType.stopClash:{
-          this.stopVpn().then(()=>{
-            resolve(true)
-          }).catch((e:Error)=>{
-            resolve(e.message)
-          })
+          this.stopVpn()
+          resolve(true)
           break;
         }
       }
@@ -176,7 +183,7 @@ export class  SocketStubService{
       console.log("ClashVPN", `配置文件 没有加载 `);
     }
   }
-  async stopVpn(){
+  stopVpn(){
     this.clashVpnService?.stopVpn()
   }
 }

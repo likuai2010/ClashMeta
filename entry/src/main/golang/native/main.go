@@ -53,7 +53,6 @@ func reset() {
 //export forceGc
 func forceGc() {
     log.Infoln("[APP] os.Exit")
-    os.Exit(0)
 	go func() {
 		log.Infoln("[APP] request force GC")
 

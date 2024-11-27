@@ -89,8 +89,17 @@ struct Index {
     profileViewModel.running = result
   }
   async stopVpn(){
+    if(this.loading){
+      return
+    }
+    this.loading = true
+    try {
+      await clashProxyService.stopClash()
+    } catch (e) {
+      promptAction.showToast({message: e.message})
+    }
+    this.loading = false
     this.running = false
-    await clashProxyService.stopClash()
     profileViewModel.running = false
   }
   scroller: Scroller = new Scroller();

@@ -36,6 +36,7 @@ export enum ClashRpcType{
   startClash = 15,
   stopClash = 16,
   fetchAndValid = 17,
+  reset = 18
 }
 export interface IClashManager {
   queryTunnelState(): Promise<TunnelState>;

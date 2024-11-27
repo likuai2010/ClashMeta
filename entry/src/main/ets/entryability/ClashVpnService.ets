@@ -93,7 +93,6 @@ export  class ClashVpnService{
     }
   }
   stopVpn(){
-    nativeNotifyDnsChanged("8.8.8.8")
     nativeStopTun()
     logger.log("ClashVPN", `停止vpn服务` )
     this.vpnConnection?.destroy()
