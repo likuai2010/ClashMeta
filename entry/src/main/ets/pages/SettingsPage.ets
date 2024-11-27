@@ -208,7 +208,7 @@ export struct MetaFeaturesPage {
 @Component
 export struct SettingsPage {
   @Consume('router') routerInfos: NavPathStack
-
+  @StorageLink('backgroundModel') backgroundModel: boolean = true
   async aboutToAppear(): Promise<void> {
     // let configs = await SocketProxyService.queryConfiguration()
     // console.log("SettingsPage ", configs)
@@ -223,6 +223,9 @@ export struct SettingsPage {
   build() {
     NavDestination() {
       Column() {
+        ActionLabel({ title:"后台运行", subTitle:"通过模拟下载来实现后台运行", isSwitch: this.backgroundModel, icon:"ic_baseline_vpn_lock", change: async (result)=>{
+          this.backgroundModel = result ?? false
+        }})
         ActionLabel({ title:"Meta Features", icon:"ic_baseline_meta", change:()=>{
           this.routerInfos.pushPath({name:"MetaFeaturesPage"})
         }})

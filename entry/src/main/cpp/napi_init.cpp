@@ -527,7 +527,7 @@ static napi_value nativeQueryTrafficNow(napi_env env, napi_callback_info info)
     uint64_t upload = 0l, download = 0l;
     queryNow(&upload, &download);
     napi_value result;
-    long now = down_scale_traffic(upload) << 32u | down_scale_traffic(download);
+    uint64_t now = down_scale_traffic(upload) << 32u | down_scale_traffic(download);
     napi_create_int64(env, now, &result);
     return result;
 }
@@ -536,7 +536,7 @@ static napi_value nativeQueryTrafficTotal(napi_env env, napi_callback_info info)
     uint64_t upload = 0l, download = 0l;
     queryTotal(&upload, &download);
     napi_value result;
-    long now = down_scale_traffic(upload) << 32u | down_scale_traffic(download);
+    uint64_t now = down_scale_traffic(upload) << 32u | down_scale_traffic(download);
     napi_create_int64(env, now, &result);
     return result;
 }
