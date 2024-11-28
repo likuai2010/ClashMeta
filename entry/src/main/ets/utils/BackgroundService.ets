@@ -24,7 +24,7 @@ export class BackgroundService{
     this.updateTraffic()
     this.notice = setInterval(async ()=> {
       this.updateTraffic()
-    }, 2000)
+    }, 5000)
   }
   async updateTraffic(): Promise<void>{
     let now = await SocketProxyService.queryTrafficNow()

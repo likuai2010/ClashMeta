@@ -208,7 +208,7 @@ export struct MetaFeaturesPage {
 @Component
 export struct SettingsPage {
   @Consume('router') routerInfos: NavPathStack
-  @StorageLink('backgroundModel') backgroundModel: boolean = true
+  @StorageLink('backgroundModel') backgroundModel: boolean = false
   async aboutToAppear(): Promise<void> {
     // let configs = await SocketProxyService.queryConfiguration()
     // console.log("SettingsPage ", configs)

@@ -52,7 +52,7 @@ function PageRouter(name: string, params:string) {
 @Component
 struct Index {
   @StorageLink('compatibilityModel') compatibilityModel: boolean = true
-  @StorageLink('backgroundModel') backgroundModel: boolean = true
+  @StorageLink('backgroundModel') backgroundModel: boolean = false
   vpnConnection = vpnExtension.createVpnConnection(getContext(this) as common.VpnExtensionContext);
   @Provide('router') routerInfos: NavPathStack = new NavPathStack()
   @State running: boolean = false;
