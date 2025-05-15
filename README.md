@@ -5,6 +5,6 @@ HarmonyOS Next 首款GoLang开源移植应用
 > [!WARNING]
 > 本项目已永久停更
 >
-> 我们重新开发了新的Clash NEXT软件，前端使用ArkTS开发，基于[FlClash](https://github.com/chen08209/FlClash)内核，UI更精美，内核更稳定
+> 我们重新开发了新的ClashBox软件，前端使用ArkTS开发，基于Mihomo(Clash Meta)内核，UI更精美，内核更稳定
 >
-> 若要获取更新，请您移步至我们的新仓库 https://github.com/xiaobaigroup/ClashNEXT
+> 若要获取更新，请您移步至我们的新仓库 https://github.com/xiaobaigroup/ClashBox
